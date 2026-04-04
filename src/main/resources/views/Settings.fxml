@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #e5e6df;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.muse.MainDashboardController">
+    
+    <left>
+        <VBox spacing="15.0" style="-fx-background-color: #d1d5c8; -fx-padding: 20; -fx-pref-width: 250;">
+            <VBox alignment="CENTER_LEFT" spacing="-5.0" style="-fx-padding: 0 0 20 0;">
+                <Label style="-fx-font-size: 36px; -fx-font-weight: bold;" text="MUSE" />
+                <Label style="-fx-font-size: 14px;" text="BY SOUCE" />
+            </VBox>
+
+            <HBox alignment="CENTER_LEFT" style="-fx-background-color: #b8c2ab; -fx-background-radius: 15; -fx-padding: 5 10;">
+                <Label style="-fx-font-weight: bold;" text="Q " textFill="white" />
+                <TextField promptText="Search..." style="-fx-background-color: transparent;" />
+            </HBox>
+
+            <VBox spacing="10.0" style="-fx-padding: 20 0 0 0;">
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transperent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Home" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Communities" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Create Style" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Profile" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-font-size: 16px; -fx-background-radius: 10; -fx-padding: 10;" text="Settings" />
+            </VBox>
+        </VBox>
+    </left>
+
+    <center>
+        <StackPane fx:id="contentArea" style="-fx-padding: 20;">
+            <VBox spacing="50.0" style="-fx-spacing: 130;">
+                <HBox spacing="15.0" style="-fx-spacing: 100;">
+                    <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15;" text="Profile Type" />
+               <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: #779946; -fx-border-color: #8c9c76; -fx-border-radius: 15; -fx-background-radius: 15;" text="Public" />
+               <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: transparent; -fx-border-color: #8c9c76; -fx-border-radius: 15;" text="Private" />
+               <padding>
+                  <Insets left="50.0" top="35.0" />
+               </padding>
+                </HBox>
+            <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15;" text="Blocked Profiles">
+               <VBox.margin>
+                  <Insets left="60.0" />
+               </VBox.margin>
+            </Button>
+            <HBox spacing="35.0" style="-fx-spacing: 150;">
+               <padding>
+                  <Insets left="80.0" />
+               </padding>
+               <children>
+                  <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15;" text="Explicit Comment Filter" />
+                  <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: #779946; -fx-border-color: #8c9c76; -fx-border-radius: 15; -fx-background-radius: 15;" text="ON" />
+               </children>
+            </HBox>
+            <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15;" text="Contact Support">
+               <VBox.margin>
+                  <Insets left="60.0" />
+               </VBox.margin>
+            </Button>
+                 <Button maxHeight="1.7976931348623157E308" scaleX="2.0" scaleY="2.0" style="-fx-background-color: #ab2c2c; -fx-text-fill: white; -fx-background-radius: 15;" text="Reset Profile">
+               <VBox.margin>
+                  <Insets bottom="20.0" left="50.0" />
+               </VBox.margin>
+            </Button>
+            </VBox>
+        </StackPane>
+    </center>
+</BorderPane>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #e5e6df;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.muse.MainDashboardController">
+    
+    <left>
+        <VBox spacing="15.0" style="-fx-background-color: #d1d5c8; -fx-padding: 20; -fx-pref-width: 250;">
+            <VBox alignment="CENTER_LEFT" spacing="-5.0" style="-fx-padding: 0 0 20 0;">
+                <Label style="-fx-font-size: 36px; -fx-font-weight: bold;" text="MUSE" />
+                <Label style="-fx-font-size: 14px;" text="BY SOUCE" />
+            </VBox>
+
+            <HBox alignment="CENTER_LEFT" style="-fx-background-color: #b8c2ab; -fx-background-radius: 15; -fx-padding: 5 10;">
+                <Label style="-fx-font-weight: bold;" text="Q " textFill="white" />
+                <TextField promptText="Search..." style="-fx-background-color: transparent;" />
+            </HBox>
+
+            <VBox spacing="10.0" style="-fx-padding: 20 0 0 0;">
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Home" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Communities" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Create Style" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;" text="Profile" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Settings" />
+            </VBox>
+        </VBox>
+    </left>
+
+    <center>
+        <StackPane fx:id="contentArea" style="-fx-padding: 20;">
+         <GridPane>
+           <columnConstraints>
+             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+           </columnConstraints>
+           <rowConstraints>
+             <RowConstraints maxHeight="374.5" minHeight="10.0" prefHeight="100.5" vgrow="SOMETIMES" />
+             <RowConstraints maxHeight="666.5" minHeight="10.0" prefHeight="659.5" vgrow="SOMETIMES" />
+           </rowConstraints>
+            <children>
+               <Label alignment="CENTER" prefHeight="53.0" prefWidth="921.0" style="-fx-background-color: #745a42; -fx-background-radius: 50;" text="User Name" textFill="WHITE">
+                  <font>
+                     <Font size="36.0" />
+                  </font>
+                  <GridPane.margin>
+                     <Insets left="15.0" right="15.0" />
+                  </GridPane.margin>
+               </Label>
+               <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="50.0" GridPane.columnIndex="1">
+                  <children>
+                     <Button alignment="CENTER" maxWidth="Infinity" prefHeight="45.0" prefWidth="187.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;" text="Followers" />
+                     <Button alignment="CENTER" layoutX="10.0" layoutY="10.0" maxWidth="Infinity" prefHeight="45.0" prefWidth="182.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;" text="Following" />
+                  </children>
+               </HBox>
+               <ScrollPane prefHeight="200.0" prefWidth="369.0" GridPane.rowIndex="1">
+                 <content>
+                   <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="66.0" prefWidth="451.0">
+                        <children>
+                           <Label alignment="CENTER" layoutX="14.0" prefHeight="44.0" prefWidth="424.0" style="-fx-background-color: #745a42; -fx-background-radius: 50;" text="Saved Outfits" textFill="WHITE">
+                              <font>
+                                 <Font size="28.0" />
+                              </font>
+                           </Label>
+                        </children>
+                     </AnchorPane>
+                 </content>
+               </ScrollPane>
+               <ScrollPane prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                 <content>
+                   <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="70.0" prefWidth="452.0">
+                        <children>
+                           <Label alignment="CENTER" layoutX="14.0" prefHeight="44.0" prefWidth="424.0" style="-fx-background-color: #745a42; -fx-background-radius: 50;" text="Posts" textFill="WHITE">
+                              <font>
+                                 <Font size="28.0" />
+                              </font>
+                           </Label>
+                        </children>
+                     </AnchorPane>
+                 </content>
+               </ScrollPane>
+            </children>
+         </GridPane>
+        </StackPane>
+    </center>
+</BorderPane>

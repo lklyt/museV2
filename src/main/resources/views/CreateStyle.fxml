@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #e5e6df;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.muse.MainDashboardController">
+    
+    <left>
+        <VBox spacing="15.0" style="-fx-background-color: #d1d5c8; -fx-padding: 20; -fx-pref-width: 250;">
+            <VBox alignment="CENTER_LEFT" spacing="-5.0" style="-fx-padding: 0 0 20 0;">
+                <Label style="-fx-font-size: 36px; -fx-font-weight: bold;" text="MUSE" />
+                <Label style="-fx-font-size: 14px;" text="BY SOUCE" />
+            </VBox>
+
+            <HBox alignment="CENTER_LEFT" style="-fx-background-color: #b8c2ab; -fx-background-radius: 15; -fx-padding: 5 10;">
+                <Label style="-fx-font-weight: bold;" text="Q " textFill="white" />
+                <TextField promptText="Search..." style="-fx-background-color: transparent;" />
+            </HBox>
+
+            <VBox spacing="10.0" style="-fx-padding: 20 0 0 0;">
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: black; -fx-font-size: 16px;" text="Home" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Communities" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 10; -fx-background-radius: 10;" text="Create Style" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Profile" />
+                <Button alignment="BASELINE_LEFT" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;" text="Settings" />
+            </VBox>
+        </VBox>
+    </left>
+
+    <center>
+        <StackPane fx:id="contentArea" style="-fx-padding: 20;">
+            <VBox spacing="20.0">
+            <HBox prefHeight="489.0" prefWidth="910.0">
+               <children>
+                  <VBox prefHeight="489.0" prefWidth="80.0" style="-fx-spacing: 10;">
+                     <children>
+                             <Button prefHeight="54.0" prefWidth="72.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" text="HAT" />
+                        <Button prefHeight="54.0" prefWidth="72.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" text="TOP" />
+                        <Button prefHeight="54.0" prefWidth="72.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" text="DRESS" />
+                        <Button prefHeight="54.0" prefWidth="72.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" text="COAT" />
+                        <Button prefHeight="54.0" prefWidth="72.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" text="PURSE" />
+                        <Button prefHeight="54.0" prefWidth="72.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" text="BOTTOM" />
+                        <Button prefHeight="54.0" prefWidth="72.0" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" text="SHOES" />
+                     </children>
+                  </VBox>
+                  <ImageView fitHeight="483.0" fitWidth="690.0" pickOnBounds="true" preserveRatio="true" />
+                  <Button prefHeight="54.0" prefWidth="135.0" style="-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;" text="POST" />
+               </children>
+            </HBox>
+            </VBox>
+        </StackPane>
+    </center>
+</BorderPane>
