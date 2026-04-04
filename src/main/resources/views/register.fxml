@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="15.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.muse.ui.controllers.RegisterController">
+  <padding>
+    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+  </padding>
+  <Label style="-fx-font-size: 28;" text="Create Account" />
+  <Separator />
+  <VBox spacing="8.0">
+    <Label style="-fx-font-size: 12;" text="Username" />
+    <TextField fx:id="usernameField" promptText="Choose a username" />
+    <Label style="-fx-font-size: 12;" text="Email" />
+    <TextField fx:id="emailField" promptText="Enter your email" />
+    <Label style="-fx-font-size: 12;" text="Display Name" />
+    <TextField fx:id="displayNameField" promptText="Enter your display name" />
+    <Label style="-fx-font-size: 12;" text="Password" />
+    <PasswordField fx:id="passwordField" promptText="Enter a password (min 6 chars)" />
+    <Label style="-fx-font-size: 12;" text="Confirm Password" />
+    <PasswordField fx:id="confirmPasswordField" promptText="Re-enter password" />
+  </VBox>
+  <Label fx:id="errorLabel" style="-fx-text-fill: red; -fx-font-size: 12;" />
+  <Label fx:id="successLabel" style="-fx-text-fill: green; -fx-font-size: 12;" />
+  <HBox spacing="10.0">
+    <Button fx:id="registerButton" style="-fx-padding: 10; -fx-font-size: 12;" text="Register" />
+    <Button fx:id="backButton" style="-fx-padding: 10; -fx-font-size: 12;" text="Back to Login" />
+  </HBox>
+</VBox>

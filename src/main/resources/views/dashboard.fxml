@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.muse.ui.controllers.DashboardController">
+  <!-- Top Navigation -->
+  <top>
+    <HBox spacing="10.0" style="-fx-padding: 10; -fx-background-color: #f0f0f0;">
+      <Label fx:id="userLabel" style="-fx-font-size: 14;" text="Welcome" />
+      <Separator orientation="VERTICAL" />
+      <Button fx:id="logoutButton" style="-fx-padding: 5;" text="Logout" />
+    </HBox>
+  </top>
+
+  <!-- Left Sidebar -->
+  <left>
+    <VBox spacing="10.0" style="-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-min-width: 250;">
+      <Label style="-fx-font-size: 16; -fx-font-weight: bold;" text="Navigation" />
+      <Button fx:id="homeButton" maxWidth="Infinity" style="-fx-padding: 10;" text="Home" />
+      <Button fx:id="communitiesButton" maxWidth="Infinity" style="-fx-padding: 10;" text="Communities" />
+      <Button fx:id="myPostsButton" maxWidth="Infinity" style="-fx-padding: 10;" text="My Posts" />
+      <Button fx:id="profileButton" maxWidth="Infinity" style="-fx-padding: 10;" text="Profile" />
+      <Separator />
+      <Button fx:id="createPostButton" maxWidth="Infinity" style="-fx-padding: 10; -fx-font-weight: bold;" text="+ Create Post" />
+      <Button fx:id="createCommunityButton" maxWidth="Infinity" style="-fx-padding: 10; -fx-font-weight: bold;" text="+ Create Community" />
+    </VBox>
+  </left>
+
+  <!-- Center Content Area -->
+  <center>
+    <VBox spacing="15.0" style="-fx-padding: 20;">
+      <Label fx:id="titleLabel" style="-fx-font-size: 24; -fx-font-weight: bold;" text="Feed" />
+      <ScrollPane fitToWidth="true" style="-fx-padding: 0;">
+        <VBox fx:id="contentVBox" spacing="15.0" />
+      </ScrollPane>
+    </VBox>
+  </center>
+</BorderPane>
