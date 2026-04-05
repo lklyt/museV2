@@ -35,7 +35,7 @@ public class UserService {
         }
 
         String passwordHash = hashPassword(password);
-        User user = new User(username, email, passwordHash, displayName);
+        User user = new User(username, email, passwordHash);
         return Optional.of(userDAO.save(user));
     }
 

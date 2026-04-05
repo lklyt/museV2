@@ -16,8 +16,8 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public User save(User user) throws Exception {
-        String sql = "INSERT INTO users (username, email, password_hash, display_name, bio, profile_picture_url) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO users (username, email, password_hash) " +
+                     "VALUES (?, ?, ?)";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -25,9 +25,6 @@ public class UserDAOImpl implements UserDAO {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getPasswordHash());
-            stmt.setString(4, user.getDisplayName());
-            stmt.setString(5, user.getBio());
-            stmt.setString(6, user.getProfilePictureUrl());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -115,7 +112,7 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public boolean update(User user) throws Exception {
-        String sql = "UPDATE users SET username = ?, email = ?, display_name = ?, bio = ?, profile_picture_url = ? " +
+        String sql = "UPDATE users SET username = ?, email = ? " +
                      "WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
@@ -123,10 +120,7 @@ public class UserDAOImpl implements UserDAO {
 
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
-            stmt.setString(3, user.getDisplayName());
-            stmt.setString(4, user.getBio());
-            stmt.setString(5, user.getProfilePictureUrl());
-            stmt.setInt(6, user.getUserId());
+            stmt.setInt(3, user.getUserId());
 
             int affectedRows = stmt.executeUpdate();
             return affectedRows > 0;
@@ -161,9 +155,6 @@ public class UserDAOImpl implements UserDAO {
         user.setUsername(rs.getString("username"));
         user.setEmail(rs.getString("email"));
         user.setPasswordHash(rs.getString("password_hash"));
-        user.setDisplayName(rs.getString("display_name"));
-        user.setBio(rs.getString("bio"));
-        user.setProfilePictureUrl(rs.getString("profile_picture_url"));
         user.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         user.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         return user;

@@ -9,11 +9,6 @@ public interface CommunityDAO {
     Optional<Community> findById(int communityId) throws Exception;
     Optional<Community> findByName(String name) throws Exception;
     List<Community> findAll() throws Exception;
-    List<Community> findByMemberId(int userId) throws Exception;
     boolean update(Community community) throws Exception;
     boolean delete(int communityId) throws Exception;
-    boolean addMember(int communityId, int userId) throws Exception;
-    boolean removeMember(int communityId, int userId) throws Exception;
-    boolean isMember(int communityId, int userId) throws Exception;
-    int getMemberCount(int communityId) throws Exception;
 }
