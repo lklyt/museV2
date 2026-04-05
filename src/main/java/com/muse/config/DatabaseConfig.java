@@ -12,9 +12,9 @@ public class DatabaseConfig {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseConfig.class);
     private static HikariDataSource dataSource;
 
-    private static final String JDBC_URL = "jdbc:mysql://lklklyt.duckdns.org:3306/muse_db";
+    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/muse_db";
     private static final String USERNAME = "root";
-    private static final String PASSWORD = "SOUCE*CS102"; // Change to your password
+    private static final String PASSWORD = "CerenElaSefaOnurUmut"; // Change to your password
     private static final String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
 
     static {
