@@ -100,6 +100,10 @@ public class DashboardController {
     @FXML private Button followingButton;
     @FXML private VBox   savedOutfitsVBox;
     @FXML private VBox   myPostsVBox;
+    @FXML private VBox followersListView;
+    @FXML private VBox followersListVBox;
+    @FXML private VBox followingListView;
+    @FXML private VBox followingListVBox;
 
     // ── Settings view ─────────────────────────────────────────────────────────
     @FXML private Button publicButton;
@@ -285,10 +289,16 @@ public class DashboardController {
     // ═════════════════════════════════════════════════════════════════════════
 
     private void loadCommunities() {
-        communityGrid.getChildren().clear();
+        // Leave this commented out so it doesn't erase your FXML mock buttons!
+        // communityGrid.getChildren().clear(); 
+
         try {
             List<Community> communities = communityService.getAllCommunities();
-            int col = 0, row = 0;
+            
+            int col = 0;
+            // CHANGE: Start at row 1 so we don't overwrite the mock buttons in row 0
+            int row = 1; 
+            
             for (Community c : communities) {
                 Button btn = new Button(c.getName());
                 btn.setPrefHeight(75);
@@ -296,21 +306,36 @@ public class DashboardController {
                 btn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
                              "-fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px; " +
                              "-fx-font-size: 19px;");
+                
                 final int communityId = c.getCommunityId();
                 final String communityName = c.getName();
                 btn.setOnAction(e -> openCommunityDetail(communityId, communityName));
+                
                 communityGrid.add(btn, col, row);
+                
                 col++;
-                if (col == 3) { col = 0; row++; }
+                if (col == 3) { 
+                    col = 0; 
+                    row++; 
+                }
             }
-            if (communities.isEmpty()) {
-                Label empty = infoLabel("No communities yet. Create the first one!");
-                communityGrid.add(empty, 0, 0, 3, 1);
-            }
+            
+            // Note: I removed the "if (communities.isEmpty())" block here because 
+            // you already have your mock communities showing, so the grid is never truly "empty".
+
         } catch (Exception ex) {
             logger.error("Error loading communities", ex);
-            communityGrid.add(infoLabel("Could not load communities: " + ex.getMessage()), 0, 0, 3, 1);
+            // Notice I changed the row index to 1 here as well
+            communityGrid.add(infoLabel("Could not load communities: " + ex.getMessage()), 0, 1, 3, 1);
         }
+    }
+    @FXML
+    private void handleCommunityClick(javafx.event.ActionEvent event) {
+       Button clickedButton = (Button) event.getSource();
+        String communityName = clickedButton.getText();
+
+        // 2. Pass a dummy ID (-1) and the name to your official method!
+        openCommunityDetail(-1, communityName);
     }
 
     @FXML
@@ -387,16 +412,74 @@ public class DashboardController {
         savedOutfitsVBox.getChildren().add(infoLabel("No saved outfits yet."));
     }
 
-    @FXML
+@FXML
     private void handleShowFollowers() {
-        // TODO: show a dialog or navigate to a followers list view
         logger.info("Show Followers clicked");
+        // Hide profile view and show followers view
+        profileView.setVisible(false);
+        profileView.setManaged(false);
+        followersListView.setVisible(true);
+        followersListView.setManaged(true);
+
+        followersListVBox.getChildren().clear();
+        
+        // TODO: Replace this mock data with actual data from your database/UserService
+        java.util.List<String> mockFollowers = java.util.Arrays.asList("fashion_icon99", "style_guru", "vintage_vibes");
+        
+        if (mockFollowers.isEmpty()) {
+            followersListVBox.getChildren().add(infoLabel("You don't have any followers yet."));
+        } else {
+            for (String username : mockFollowers) {
+                followersListVBox.getChildren().add(createFollowUserLabel(username));
+            }
+        }
     }
 
     @FXML
     private void handleShowFollowing() {
-        // TODO: show a dialog or navigate to a following list view
         logger.info("Show Following clicked");
+        // Hide profile view and show following view
+        profileView.setVisible(false);
+        profileView.setManaged(false);
+        followingListView.setVisible(true);
+        followingListView.setManaged(true);
+
+        followingListVBox.getChildren().clear();
+        
+        // TODO: Replace this mock data with actual data from your database/UserService
+        java.util.List<String> mockFollowing = java.util.Arrays.asList("trendsetter_01", "modern_chic");
+        
+        if (mockFollowing.isEmpty()) {
+            followingListVBox.getChildren().add(infoLabel("You aren't following anyone yet."));
+        } else {
+            for (String username : mockFollowing) {
+                followingListVBox.getChildren().add(createFollowUserLabel(username));
+            }
+        }
+    }
+
+    /** Helper to safely return to the profile view from the lists */
+    @FXML
+    private void closeFollowLists() {
+        followersListView.setVisible(false);
+        followersListView.setManaged(false);
+        followingListView.setVisible(false);
+        followingListView.setManaged(false);
+        openProfile();
+    }
+
+    /** Helper to generate the green-themed username rows for the lists */
+    private Label createFollowUserLabel(String username) {
+        Label label = new Label("@" + username);
+        label.setMaxWidth(Double.MAX_VALUE);
+        // Base green theme matching your app
+        label.setStyle("-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;");
+        
+        // Optional hover effect for a bit of polish
+        label.setOnMouseEntered(e -> label.setStyle("-fx-background-color: #779946; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;"));
+        label.setOnMouseExited(e -> label.setStyle("-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;"));
+        
+        return label;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -488,10 +571,13 @@ public class DashboardController {
 
     @FXML
     private void handleAddPostToCommunity() {
-        // TODO: open a create-post dialog scoped to currentCommunityId
-        logger.info("Add Post to community {} clicked", currentCommunityId);
+        logger.info("Redirecting to Create Style from community {}", currentCommunityId);
+        
+        // This calls the exact same method that your sidebar uses, 
+        // which handles hiding the current view, showing the Create Style view,
+        // and updating the green highlight on the sidebar button.
+        openCreateStyle();
     }
-
     // ═════════════════════════════════════════════════════════════════════════
     //  Other-User Profile
     // ═════════════════════════════════════════════════════════════════════════
