@@ -11,6 +11,7 @@ public class Community {
     private String iconUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private int postCount = 0;
 
     public Community() {}
 
@@ -42,5 +43,8 @@ public class Community {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public int getPostCount(){return postCount;}
+    public void setPostCount(int count){this.postCount = count;}
 }
 

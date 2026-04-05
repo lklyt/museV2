@@ -22,6 +22,7 @@ CREATE TABLE communities (
     description TEXT,
     creator_id INT NOT NULL,
     icon_url VARCHAR(255),
+    post_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (creator_id) REFERENCES users(user_id),
