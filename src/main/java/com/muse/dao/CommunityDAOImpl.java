@@ -16,16 +16,13 @@ public class CommunityDAOImpl implements CommunityDAO {
 
     @Override
     public Community save(Community community) throws Exception {
-        String sql = "INSERT INTO communities (name, description, creator_id, icon_url, post_count) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO communities (name, post_count) VALUES (?, ?)";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, community.getName());
-            stmt.setString(2, community.getDescription());
-            stmt.setInt(3, community.getCreatorId());
-            stmt.setString(4, community.getIconUrl());
-            stmt.setInt(5, community.getPostCount());
+            stmt.setInt(2, community.getPostCount());
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
                 throw new SQLException("Creating community failed, no rows affected.");
@@ -95,16 +92,14 @@ public class CommunityDAOImpl implements CommunityDAO {
 
     @Override
     public boolean update(Community community) throws Exception {
-        String sql = "UPDATE communities SET name = ?, description = ?, icon_url = ?, post_count = ? WHERE community_id = ?";
+        String sql = "UPDATE communities SET name = ?, post_count = ? WHERE community_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, community.getName());
-            stmt.setString(2, community.getDescription());
-            stmt.setString(3, community.getIconUrl());
-            stmt.setInt(4, community.getPostCount());
-            stmt.setInt(5, community.getCommunityId());
+            stmt.setInt(2, community.getPostCount());
+            stmt.setInt(3, community.getCommunityId());
 
             return stmt.executeUpdate() > 0;
         }
@@ -126,9 +121,6 @@ public class CommunityDAOImpl implements CommunityDAO {
         Community community = new Community();
         community.setCommunityId(rs.getInt("community_id"));
         community.setName(rs.getString("name"));
-        community.setDescription(rs.getString("description"));
-        community.setCreatorId(rs.getInt("creator_id"));
-        community.setIconUrl(rs.getString("icon_url"));
         community.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         community.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         community.setPostCount(rs.getInt("post_count"));
