@@ -1,6 +1,8 @@
 package com.muse.models;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Post {
     private int postId;
@@ -13,6 +15,8 @@ public class Post {
     private int commentsCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<Comment> comments;
+    private List<ClothingItem> clothingItems;
 
     public Post() {}
 
@@ -23,6 +27,9 @@ public class Post {
         this.content = content;
         this.likesCount = 0;
         this.commentsCount = 0;
+        this.createdAt = LocalDateTime.now();
+        this.comments = new ArrayList<>();
+        this.clothingItems = new ArrayList<>();
     }
 
     // Getters and Setters
