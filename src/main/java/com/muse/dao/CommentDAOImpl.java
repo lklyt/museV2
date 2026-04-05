@@ -16,7 +16,7 @@ public class CommentDAOImpl implements CommentDAO {
 
     @Override
     public Comment save(Comment comment) throws Exception {
-        String sql = "INSERT INTO comments (post_id, author_id, content, likes_count) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO comments (post_id, author_id, content) VALUES (?, ?, ?)";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -24,7 +24,6 @@ public class CommentDAOImpl implements CommentDAO {
             stmt.setInt(1, comment.getPostId());
             stmt.setInt(2, comment.getAuthorId());
             stmt.setString(3, comment.getContent());
-            stmt.setInt(4, comment.getLikesCount());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -127,29 +126,6 @@ public class CommentDAOImpl implements CommentDAO {
         }
     }
 
-    @Override
-    public boolean incrementLikes(int commentId) throws Exception {
-        String sql = "UPDATE comments SET likes_count = likes_count + 1 WHERE comment_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, commentId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
-
-    @Override
-    public boolean decrementLikes(int commentId) throws Exception {
-        String sql = "UPDATE comments SET likes_count = CASE WHEN likes_count > 0 THEN likes_count - 1 ELSE 0 END WHERE comment_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, commentId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
 
     private Comment mapResultSetToComment(ResultSet rs) throws SQLException {
         Comment comment = new Comment();
@@ -158,7 +134,6 @@ public class CommentDAOImpl implements CommentDAO {
         comment.setAuthorId(rs.getInt("author_id"));
         comment.setAuthorUsername(rs.getString("username"));
         comment.setContent(rs.getString("content"));
-        comment.setLikesCount(rs.getInt("likes_count"));
         comment.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         comment.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         return comment;

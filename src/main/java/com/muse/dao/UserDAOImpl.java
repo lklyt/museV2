@@ -16,8 +16,8 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public User save(User user) throws Exception {
-        String sql = "INSERT INTO users (username, email, password_hash, display_name, bio, profile_picture_url) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO users (username, email, password_hash) " +
+                     "VALUES (?, ?, ?)";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -25,9 +25,6 @@ public class UserDAOImpl implements UserDAO {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getPasswordHash());
-            stmt.setString(4, user.getDisplayName());
-            stmt.setString(5, user.getBio());
-            stmt.setString(6, user.getProfilePictureUrl());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -115,7 +112,7 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public boolean update(User user) throws Exception {
-        String sql = "UPDATE users SET username = ?, email = ?, display_name = ?, bio = ?, profile_picture_url = ? " +
+        String sql = "UPDATE users SET username = ?, email = ? " +
                      "WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
@@ -123,10 +120,7 @@ public class UserDAOImpl implements UserDAO {
 
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
-            stmt.setString(3, user.getDisplayName());
-            stmt.setString(4, user.getBio());
-            stmt.setString(5, user.getProfilePictureUrl());
-            stmt.setInt(6, user.getUserId());
+            stmt.setInt(3, user.getUserId());
 
             int affectedRows = stmt.executeUpdate();
             return affectedRows > 0;
@@ -161,11 +155,138 @@ public class UserDAOImpl implements UserDAO {
         user.setUsername(rs.getString("username"));
         user.setEmail(rs.getString("email"));
         user.setPasswordHash(rs.getString("password_hash"));
-        user.setDisplayName(rs.getString("display_name"));
-        user.setBio(rs.getString("bio"));
-        user.setProfilePictureUrl(rs.getString("profile_picture_url"));
         user.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         user.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         return user;
+    }
+
+    @Override
+    public boolean followUser(int followerId, int followingId) throws Exception {
+        if (followerId == followingId) {
+            throw new IllegalArgumentException("User cannot follow themselves");
+        }
+
+        String sql = "INSERT INTO follows (follower_id, following_id) VALUES (?, ?)";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, followerId);
+            stmt.setInt(2, followingId);
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1062) { // Duplicate entry
+                logger.info("User " + followerId + " already follows user " + followingId);
+                return false;
+            }
+            throw e;
+        }
+    }
+
+    @Override
+    public boolean unfollowUser(int followerId, int followingId) throws Exception {
+        String sql = "DELETE FROM follows WHERE follower_id = ? AND following_id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, followerId);
+            stmt.setInt(2, followingId);
+
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    @Override
+    public List<User> getFollowers(int userId) throws Exception {
+        List<User> followers = new ArrayList<>();
+        String sql = "SELECT u.* FROM users u " +
+                     "INNER JOIN follows f ON u.user_id = f.follower_id " +
+                     "WHERE f.following_id = ? " +
+                     "ORDER BY f.created_at DESC";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    followers.add(mapResultSetToUser(rs));
+                }
+            }
+        }
+        return followers;
+    }
+
+    @Override
+    public List<User> getFollowing(int userId) throws Exception {
+        List<User> following = new ArrayList<>();
+        String sql = "SELECT u.* FROM users u " +
+                     "INNER JOIN follows f ON u.user_id = f.following_id " +
+                     "WHERE f.follower_id = ? " +
+                     "ORDER BY f.created_at DESC";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    following.add(mapResultSetToUser(rs));
+                }
+            }
+        }
+        return following;
+    }
+
+    @Override
+    public boolean isFollowing(int followerId, int followingId) throws Exception {
+        String sql = "SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, followerId);
+            stmt.setInt(2, followingId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    @Override
+    public int getFollowerCount(int userId) throws Exception {
+        String sql = "SELECT COUNT(*) as count FROM follows WHERE following_id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count");
+                }
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public int getFollowingCount(int userId) throws Exception {
+        String sql = "SELECT COUNT(*) as count FROM follows WHERE follower_id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count");
+                }
+            }
+        }
+        return 0;
     }
 }

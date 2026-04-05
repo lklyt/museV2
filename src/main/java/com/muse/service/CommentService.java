@@ -23,7 +23,6 @@ public class CommentService {
 
         Comment comment = new Comment(postId, authorId, content);
         Comment saved = commentDAO.save(comment);
-        postDAO.incrementComments(postId);
         return saved;
     }
 
@@ -49,17 +48,9 @@ public class CommentService {
     public boolean deleteComment(int commentId) throws Exception {
         Optional<Comment> comment = commentDAO.findById(commentId);
         if (comment.isPresent()) {
-            postDAO.decrementComments(comment.get().getPostId());
             return commentDAO.delete(commentId);
         }
         return false;
     }
 
-    public boolean likeComment(int commentId) throws Exception {
-        return commentDAO.incrementLikes(commentId);
-    }
-
-    public boolean unlikeComment(int commentId) throws Exception {
-        return commentDAO.decrementLikes(commentId);
-    }
 }

@@ -1,25 +1,24 @@
 package com.muse.models;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class User {
     private int userId;
     private String username;
     private String email;
     private String passwordHash;
-    private String displayName;
-    private String bio;
-    private String profilePictureUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<User> following;
+    private List<User> followers;
 
     public User() {}
 
-    public User(String username, String email, String passwordHash, String displayName) {
+    public User(String username, String email, String passwordHash) {
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;
-        this.displayName = displayName;
     }
 
     // Getters and Setters
@@ -35,18 +34,15 @@ public class User {
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 
-    public String getDisplayName() { return displayName; }
-    public void setDisplayName(String displayName) { this.displayName = displayName; }
-
-    public String getBio() { return bio; }
-    public void setBio(String bio) { this.bio = bio; }
-
-    public String getProfilePictureUrl() { return profilePictureUrl; }
-    public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
-
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public List<User> getFollowing() { return following; }
+    public void setFollowing(List<User> following) { this.following = following; }
+
+    public List<User> getFollowers() { return followers; }
+    public void setFollowers(List<User> followers) { this.followers = followers; }
 }
