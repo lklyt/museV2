@@ -101,3 +101,5 @@ CREATE TABLE follows (
     INDEX idx_following_id (following_id),
     INDEX idx_follower_id (follower_id)
 );
+
+
