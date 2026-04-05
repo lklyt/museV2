@@ -42,4 +42,10 @@ public class Post {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public List<Comment> getComments() { return comments; }
+    public void setComments(List<Comment> comments) { this.comments = comments; }
+
+    public List<ClothingItem> getClothingItems() { return clothingItems; }
+    public void setClothingItems(List<ClothingItem> clothingItems) { this.clothingItems = clothingItems; }
 }

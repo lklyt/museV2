@@ -68,14 +68,26 @@ CREATE TABLE post_stars (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Post Clothing Items Table
+-- Clothing Items Table
 CREATE TABLE clothing_items (
     item_id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     item_category VARCHAR(50) NOT NULL,
     image_url VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category (item_category)
+);
+
+-- Post Clothing Items Junction Table (Many-to-Many)
+CREATE TABLE post_clothing_items (
+    post_id INT NOT NULL,
+    item_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (post_id, item_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES clothing_items(item_id) ON DELETE CASCADE,
+    INDEX idx_item_id (item_id)
 );
 
 -- Follows Table
