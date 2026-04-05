@@ -25,21 +25,10 @@ CREATE TABLE communities (
     description TEXT,
     creator_id INT NOT NULL,
     icon_url VARCHAR(255),
-    member_count INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (creator_id) REFERENCES users(user_id),
     INDEX idx_name (name)
-);
-
--- Community Members Junction Table
-CREATE TABLE community_members (
-    community_id INT NOT NULL,
-    user_id INT NOT NULL,
-    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (community_id, user_id),
-    FOREIGN KEY (community_id) REFERENCES communities(community_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- Posts Table

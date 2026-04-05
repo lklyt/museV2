@@ -9,17 +9,13 @@ public class Community {
     private int creatorId;
     private String creatorUsername;
     private String iconUrl;
-    private int memberCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public Community() {}
 
-    public Community(String name, String description, int creatorId) {
+    public Community(String name) {
         this.name = name;
-        this.description = description;
-        this.creatorId = creatorId;
-        this.memberCount = 1;
     }
 
     // Getters and Setters
@@ -41,12 +37,10 @@ public class Community {
     public String getIconUrl() { return iconUrl; }
     public void setIconUrl(String iconUrl) { this.iconUrl = iconUrl; }
 
-    public int getMemberCount() { return memberCount; }
-    public void setMemberCount(int memberCount) { this.memberCount = memberCount; }
-
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
+
