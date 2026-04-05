@@ -56,26 +56,6 @@ CREATE TABLE comments (
     INDEX idx_author_id (author_id)
 );
 
--- Post Likes Table
-CREATE TABLE post_likes (
-    post_id INT NOT NULL,
-    user_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (post_id, user_id),
-    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
-
--- Comment Likes Table
-CREATE TABLE comment_likes (
-    comment_id INT NOT NULL,
-    user_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (comment_id, user_id),
-    FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
-
 -- Post Stars Table
 CREATE TABLE post_stars (
     post_id INT NOT NULL,
