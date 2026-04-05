@@ -384,8 +384,7 @@ public class DashboardController {
         User current = SessionManager.getInstance().getCurrentUser();
         if (current == null) return;
 
-        usernameLabel.setText(current.getDisplayName() != null
-                ? current.getDisplayName() : current.getUsername());
+        usernameLabel.setText(current.getUsername());
 
         myPostsVBox.getChildren().clear();
         // Re-add the header label (it was declared in FXML as a static child)
@@ -596,8 +595,7 @@ public class DashboardController {
         try {
             var userOpt = userService.getUserById(userId);
             if (userOpt.isPresent()) {
-                otherUsernameLabel.setText(userOpt.get().getDisplayName() != null
-                        ? userOpt.get().getDisplayName() : userOpt.get().getUsername());
+                otherUsernameLabel.setText(userOpt.get().getUsername());
             } else {
                 otherUsernameLabel.setText("Unknown User");
             }

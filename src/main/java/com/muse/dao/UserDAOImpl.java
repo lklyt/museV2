@@ -112,7 +112,7 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public boolean update(User user) throws Exception {
-        String sql = "UPDATE users SET username = ?, email = ?" +
+        String sql = "UPDATE users SET username = ?, email = ? " +
                      "WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
@@ -120,7 +120,7 @@ public class UserDAOImpl implements UserDAO {
 
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
-            stmt.setString(3, user.getDisplayName());
+            stmt.setInt(3, user.getUserId());
 
             int affectedRows = stmt.executeUpdate();
             return affectedRows > 0;
