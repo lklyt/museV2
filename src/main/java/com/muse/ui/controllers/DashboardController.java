@@ -421,16 +421,21 @@ public class DashboardController {
         followersListView.setManaged(true);
 
         followersListVBox.getChildren().clear();
-        
-        // TODO: Replace this mock data with actual data from your database/UserService
-        java.util.List<String> mockFollowers = java.util.Arrays.asList("fashion_icon99", "style_guru", "vintage_vibes");
-        
-        if (mockFollowers.isEmpty()) {
-            followersListVBox.getChildren().add(infoLabel("You don't have any followers yet."));
-        } else {
-            for (String username : mockFollowers) {
-                followersListVBox.getChildren().add(createFollowUserLabel(username));
+
+        try {
+            int userId = SessionManager.getInstance().getCurrentUserId();
+            List<User> followers = userService.getFollowers(userId);
+
+            if (followers.isEmpty()) {
+                followersListVBox.getChildren().add(infoLabel("You don't have any followers yet."));
+            } else {
+                for (User user : followers) {
+                    followersListVBox.getChildren().add(createFollowUserLabel(user.getUsername()));
+                }
             }
+        } catch (Exception ex) {
+            logger.error("Error loading followers", ex);
+            followersListVBox.getChildren().add(infoLabel("Could not load followers: " + ex.getMessage()));
         }
     }
 
@@ -444,16 +449,21 @@ public class DashboardController {
         followingListView.setManaged(true);
 
         followingListVBox.getChildren().clear();
-        
-        // TODO: Replace this mock data with actual data from your database/UserService
-        java.util.List<String> mockFollowing = java.util.Arrays.asList("trendsetter_01", "modern_chic");
-        
-        if (mockFollowing.isEmpty()) {
-            followingListVBox.getChildren().add(infoLabel("You aren't following anyone yet."));
-        } else {
-            for (String username : mockFollowing) {
-                followingListVBox.getChildren().add(createFollowUserLabel(username));
+
+        try {
+            int userId = SessionManager.getInstance().getCurrentUserId();
+            List<User> following = userService.getFollowing(userId);
+
+            if (following.isEmpty()) {
+                followingListVBox.getChildren().add(infoLabel("You aren't following anyone yet."));
+            } else {
+                for (User user : following) {
+                    followingListVBox.getChildren().add(createFollowUserLabel(user.getUsername()));
+                }
             }
+        } catch (Exception ex) {
+            logger.error("Error loading following list", ex);
+            followingListVBox.getChildren().add(infoLabel("Could not load following list: " + ex.getMessage()));
         }
     }
 
@@ -623,10 +633,23 @@ public class DashboardController {
 
     @FXML
     private void handleFollowUser() {
-        // TODO: call userService.followUser(me, currentOtherUserId)
-        logger.info("Follow user {} clicked", currentOtherUserId);
-        followUserButton.setText("Following ✓");
-        followUserButton.setDisable(true);
+        try {
+            int me = SessionManager.getInstance().getCurrentUserId();
+            if (userService.followUser(me, currentOtherUserId)) {
+                logger.info("Successfully followed user {}", currentOtherUserId);
+                followUserButton.setText("Following ✓");
+                followUserButton.setDisable(true);
+            } else {
+                logger.warn("Already following user {}", currentOtherUserId);
+                followUserButton.setText("Following ✓");
+                followUserButton.setDisable(true);
+            }
+        } catch (Exception ex) {
+            logger.error("Error following user", ex);
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Could not follow user: " + ex.getMessage(), ButtonType.OK);
+            alert.setHeaderText(null);
+            alert.showAndWait();
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════

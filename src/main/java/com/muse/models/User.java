@@ -1,6 +1,7 @@
 package com.muse.models;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class User {
     private int userId;
@@ -9,6 +10,8 @@ public class User {
     private String passwordHash;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<User> following;
+    private List<User> followers;
 
     public User() {}
 
@@ -36,4 +39,10 @@ public class User {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public List<User> getFollowing() { return following; }
+    public void setFollowing(List<User> following) { this.following = following; }
+
+    public List<User> getFollowers() { return followers; }
+    public void setFollowers(List<User> followers) { this.followers = followers; }
 }

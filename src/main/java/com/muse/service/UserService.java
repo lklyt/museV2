@@ -10,6 +10,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.List;
 
 public class UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
@@ -73,6 +74,35 @@ public class UserService {
             }
         }
         return false;
+    }
+
+    // Follow functionality
+    public boolean followUser(int followerId, int followingId) throws Exception {
+        return userDAO.followUser(followerId, followingId);
+    }
+
+    public boolean unfollowUser(int followerId, int followingId) throws Exception {
+        return userDAO.unfollowUser(followerId, followingId);
+    }
+
+    public List<User> getFollowers(int userId) throws Exception {
+        return userDAO.getFollowers(userId);
+    }
+
+    public List<User> getFollowing(int userId) throws Exception {
+        return userDAO.getFollowing(userId);
+    }
+
+    public boolean isFollowing(int followerId, int followingId) throws Exception {
+        return userDAO.isFollowing(followerId, followingId);
+    }
+
+    public int getFollowerCount(int userId) throws Exception {
+        return userDAO.getFollowerCount(userId);
+    }
+
+    public int getFollowingCount(int userId) throws Exception {
+        return userDAO.getFollowingCount(userId);
     }
 
     private String hashPassword(String password) throws Exception {

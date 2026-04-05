@@ -76,3 +76,15 @@ CREATE TABLE clothing_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- Follows Table
+CREATE TABLE follows (
+    follower_id INT NOT NULL,
+    following_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, following_id),
+    FOREIGN KEY (follower_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (following_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    INDEX idx_following_id (following_id),
+    INDEX idx_follower_id (follower_id)
+);
