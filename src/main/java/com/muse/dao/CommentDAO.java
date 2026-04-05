@@ -11,6 +11,4 @@ public interface CommentDAO {
     List<Comment> findByAuthorId(int authorId) throws Exception;
     boolean update(Comment comment) throws Exception;
     boolean delete(int commentId) throws Exception;
-    boolean incrementLikes(int commentId) throws Exception;
-    boolean decrementLikes(int commentId) throws Exception;
 }

@@ -1,19 +1,18 @@
 package com.muse.models;
 
-import javafx.scene.image.Image;
 
 public class ClothingItem {
     private int id;
     private ClothingCategory category;
     private String description;
-    private Image image;
+    private String imageUrl;
 
     public ClothingItem() {}
 
-    public ClothingItem(ClothingCategory category, String description, Image image) {
+    public ClothingItem(ClothingCategory category, String description, String imageUrl) {
         this.category = category;
         this.description = description;
-        this.image = image;
+        this.imageUrl = imageUrl;
     }
 
     public int getId() { return id; }
@@ -25,6 +24,6 @@ public class ClothingItem {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public Image getImage() { return image; }
-    public void setImage(Image image) { this.image = image; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

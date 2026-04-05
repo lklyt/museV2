@@ -16,18 +16,14 @@ public class PostDAOImpl implements PostDAO {
 
     @Override
     public Post save(Post post) throws Exception {
-        String sql = "INSERT INTO posts (author_id, community_id, title, content, likes_count, comments_count) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO posts (author_id, community_id) " +
+                     "VALUES (?, ?)";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setInt(1, post.getAuthorId());
             stmt.setInt(2, post.getCommunityId());
-            stmt.setString(3, post.getTitle());
-            stmt.setString(4, post.getContent());
-            stmt.setInt(5, post.getLikesCount());
-            stmt.setInt(6, post.getCommentsCount());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -121,20 +117,6 @@ public class PostDAOImpl implements PostDAO {
         return posts;
     }
 
-    @Override
-    public boolean update(Post post) throws Exception {
-        String sql = "UPDATE posts SET title = ?, content = ? WHERE post_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, post.getTitle());
-            stmt.setString(2, post.getContent());
-            stmt.setInt(3, post.getPostId());
-
-            return stmt.executeUpdate() > 0;
-        }
-    }
 
     @Override
     public boolean delete(int postId) throws Exception {
@@ -148,53 +130,7 @@ public class PostDAOImpl implements PostDAO {
         }
     }
 
-    @Override
-    public boolean incrementLikes(int postId) throws Exception {
-        String sql = "UPDATE posts SET likes_count = likes_count + 1 WHERE post_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, postId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
-
-    @Override
-    public boolean decrementLikes(int postId) throws Exception {
-        String sql = "UPDATE posts SET likes_count = CASE WHEN likes_count > 0 THEN likes_count - 1 ELSE 0 END WHERE post_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, postId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
-
-    @Override
-    public boolean incrementComments(int postId) throws Exception {
-        String sql = "UPDATE posts SET comments_count = comments_count + 1 WHERE post_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, postId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
-
-    @Override
-    public boolean decrementComments(int postId) throws Exception {
-        String sql = "UPDATE posts SET comments_count = CASE WHEN comments_count > 0 THEN comments_count - 1 ELSE 0 END WHERE post_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, postId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
+  
 
     private Post mapResultSetToPost(ResultSet rs) throws SQLException {
         Post post = new Post();
@@ -202,10 +138,6 @@ public class PostDAOImpl implements PostDAO {
         post.setAuthorId(rs.getInt("author_id"));
         post.setAuthorUsername(rs.getString("username"));
         post.setCommunityId(rs.getInt("community_id"));
-        post.setTitle(rs.getString("title"));
-        post.setContent(rs.getString("content"));
-        post.setLikesCount(rs.getInt("likes_count"));
-        post.setCommentsCount(rs.getInt("comments_count"));
         post.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         post.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         return post;

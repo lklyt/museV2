@@ -700,16 +700,13 @@ public class DashboardController {
         card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 12;");
         card.setMaxWidth(Double.MAX_VALUE);
 
-        Label title  = new Label(post.getTitle());
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
         Label author = new Label("by @" + post.getAuthorUsername());
         author.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a4a4a;");
         // Clicking the author label navigates to their profile
         author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
         author.setStyle(author.getStyle() + " -fx-cursor: hand;");
-
-        card.getChildren().addAll(title, author);
+        
+        card.getChildren().addAll(author);
         return card;
     }
 

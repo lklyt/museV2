@@ -9,10 +9,6 @@ public class Post {
     private int authorId;
     private String authorUsername;
     private int communityId;
-    private String title;
-    private String content;
-    private int likesCount;
-    private int commentsCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<Comment> comments;
@@ -20,13 +16,9 @@ public class Post {
 
     public Post() {}
 
-    public Post(int authorId, int communityId, String title, String content) {
+    public Post(int authorId, int communityId) {
         this.authorId = authorId;
         this.communityId = communityId;
-        this.title = title;
-        this.content = content;
-        this.likesCount = 0;
-        this.commentsCount = 0;
         this.createdAt = LocalDateTime.now();
         this.comments = new ArrayList<>();
         this.clothingItems = new ArrayList<>();
@@ -44,18 +36,6 @@ public class Post {
 
     public int getCommunityId() { return communityId; }
     public void setCommunityId(int communityId) { this.communityId = communityId; }
-
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-
-    public int getLikesCount() { return likesCount; }
-    public void setLikesCount(int likesCount) { this.likesCount = likesCount; }
-
-    public int getCommentsCount() { return commentsCount; }
-    public void setCommentsCount(int commentsCount) { this.commentsCount = commentsCount; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

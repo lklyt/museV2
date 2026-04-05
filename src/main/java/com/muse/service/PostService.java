@@ -13,15 +13,9 @@ public class PostService {
     private static final Logger logger = LoggerFactory.getLogger(PostService.class);
     private final PostDAO postDAO = new PostDAOImpl();
 
-    public Post createPost(int authorId, int communityId, String title, String content) throws Exception {
-        if (title == null || title.trim().isEmpty()) {
-            throw new IllegalArgumentException("Title cannot be empty");
-        }
-        if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("Content cannot be empty");
-        }
+    public Post createPost(int authorId, int communityId) throws Exception {
 
-        Post post = new Post(authorId, communityId, title, content);
+        Post post = new Post(authorId, communityId);
         return postDAO.save(post);
     }
 
@@ -41,30 +35,7 @@ public class PostService {
         return postDAO.findAll();
     }
 
-    public boolean updatePost(Post post) throws Exception {
-        if (post.getTitle() == null || post.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("Title cannot be empty");
-        }
-        if (post.getContent() == null || post.getContent().trim().isEmpty()) {
-            throw new IllegalArgumentException("Content cannot be empty");
-        }
-        return postDAO.update(post);
-    }
-
     public boolean deletePost(int postId) throws Exception {
         return postDAO.delete(postId);
-    }
-
-    public boolean likePost(int postId) throws Exception {
-        return postDAO.incrementLikes(postId);
-    }
-
-    public boolean unlikePost(int postId) throws Exception {
-        return postDAO.decrementLikes(postId);
-    }
-
-    public int getLikesCount(int postId) throws Exception {
-        Optional<Post> post = postDAO.findById(postId);
-        return post.map(Post::getLikesCount).orElse(0);
     }
 }

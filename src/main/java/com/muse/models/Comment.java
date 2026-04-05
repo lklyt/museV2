@@ -8,7 +8,6 @@ public class Comment {
     private int authorId;
     private String authorUsername;
     private String content;
-    private int likesCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -18,7 +17,6 @@ public class Comment {
         this.postId = postId;
         this.authorId = authorId;
         this.content = content;
-        this.likesCount = 0;
     }
 
     // Getters and Setters
@@ -36,9 +34,6 @@ public class Comment {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
-
-    public int getLikesCount() { return likesCount; }
-    public void setLikesCount(int likesCount) { this.likesCount = likesCount; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
