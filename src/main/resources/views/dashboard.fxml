@@ -1,40 +1,372 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.muse.ui.controllers.DashboardController">
-  <!-- Top Navigation -->
-  <top>
-    <HBox spacing="10.0" style="-fx-padding: 10; -fx-background-color: #f0f0f0;">
-      <Label fx:id="userLabel" style="-fx-font-size: 14;" text="Welcome" />
-      <Separator orientation="VERTICAL" />
-      <Button fx:id="logoutButton" style="-fx-padding: 5;" text="Logout" />
-    </HBox>
-  </top>
+<BorderPane prefHeight="800.0" prefWidth="1200.0"
+            style="-fx-background-color: #e5e6df;"
+            xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.muse.ui.controllers.DashboardController">
 
-  <!-- Left Sidebar -->
-  <left>
-    <VBox spacing="10.0" style="-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-min-width: 250;">
-      <Label style="-fx-font-size: 16; -fx-font-weight: bold;" text="Navigation" />
-      <Button fx:id="homeButton" maxWidth="Infinity" style="-fx-padding: 10;" text="Home" />
-      <Button fx:id="communitiesButton" maxWidth="Infinity" style="-fx-padding: 10;" text="Communities" />
-      <Button fx:id="myPostsButton" maxWidth="Infinity" style="-fx-padding: 10;" text="My Posts" />
-      <Button fx:id="profileButton" maxWidth="Infinity" style="-fx-padding: 10;" text="Profile" />
-      <Separator />
-      <Button fx:id="createPostButton" maxWidth="Infinity" style="-fx-padding: 10; -fx-font-weight: bold;" text="+ Create Post" />
-      <Button fx:id="createCommunityButton" maxWidth="Infinity" style="-fx-padding: 10; -fx-font-weight: bold;" text="+ Create Community" />
-    </VBox>
-  </left>
+    <!-- ═══════════════════════  LEFT SIDEBAR  ═══════════════════════ -->
+    <left>
+        <VBox spacing="15.0" prefWidth="250.0"
+              style="-fx-background-color: #d1d5c8; -fx-padding: 20;">
 
-  <!-- Center Content Area -->
-  <center>
-    <VBox spacing="15.0" style="-fx-padding: 20;">
-      <Label fx:id="titleLabel" style="-fx-font-size: 24; -fx-font-weight: bold;" text="Feed" />
-      <ScrollPane fitToWidth="true" style="-fx-padding: 0;">
-        <VBox fx:id="contentVBox" spacing="15.0" />
-      </ScrollPane>
-    </VBox>
-  </center>
+            <!-- Logo -->
+            <VBox alignment="CENTER_LEFT" spacing="-5.0" style="-fx-padding: 0 0 20 0;">
+                <Label style="-fx-font-size: 36px; -fx-font-weight: bold;" text="MUSE" />
+                <Label style="-fx-font-size: 14px;" text="BY SOUCE" />
+            </VBox>
+
+            <!-- Search -->
+            <HBox alignment="CENTER_LEFT"
+                  style="-fx-background-color: #b8c2ab; -fx-background-radius: 15; -fx-padding: 5 10;">
+                <Label style="-fx-font-weight: bold;" text="Q " textFill="white" />
+                <TextField fx:id="searchField" promptText="Search..."
+                           style="-fx-background-color: transparent;"
+                           onAction="#handleSearch" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <!-- Nav Buttons -->
+            <VBox fx:id="navButtons" spacing="10.0" style="-fx-padding: 20 0 0 0;" VBox.vgrow="ALWAYS">
+                <Button fx:id="homeButton"
+                        alignment="BASELINE_LEFT" maxWidth="Infinity"
+                        onAction="#openHome"
+                        text="Home" />
+                <Button fx:id="communitiesButton"
+                        alignment="BASELINE_LEFT" maxWidth="Infinity"
+                        onAction="#openCommunities"
+                        text="Communities" />
+                <Button fx:id="createStyleButton"
+                        alignment="BASELINE_LEFT" maxWidth="Infinity"
+                        onAction="#openCreateStyle"
+                        text="Create Style" />
+                <Button fx:id="profileButton"
+                        alignment="BASELINE_LEFT" maxWidth="Infinity"
+                        onAction="#openProfile"
+                        text="Profile" />
+                <Button fx:id="settingsButton"
+                        alignment="BASELINE_LEFT" maxWidth="Infinity"
+                        onAction="#openSettings"
+                        text="Settings" />
+            </VBox>
+
+            <!-- Logout -->
+            <Button fx:id="logoutButton" maxWidth="Infinity" onAction="#handleLogout"
+                    text="Logout"
+                    style="-fx-background-color: #ab2c2c; -fx-text-fill: white; -fx-background-radius: 10; -fx-font-size: 14px; -fx-padding: 8;">
+                <VBox.margin><Insets top="20.0" /></VBox.margin>
+            </Button>
+
+        </VBox>
+    </left>
+
+    <!-- ═══════════════════════  CENTER CONTENT AREA  ═══════════════════════ -->
+    <center>
+        <StackPane fx:id="contentArea" style="-fx-padding: 20;">
+
+            <!-- ─────────────  HOME VIEW (ForYou / Discover)  ───────────── -->
+            <VBox fx:id="homeView" spacing="20.0" visible="true" managed="true">
+
+                <!-- Tab Bar -->
+                <HBox prefHeight="58.0" spacing="20.0">
+                    <Button fx:id="forYouButton" onAction="#openForYou" text="For You">
+                        <font><Font size="18.0" /></font>
+                    </Button>
+                    <Button fx:id="discoverButton" onAction="#openDiscover" text="Discover">
+                        <font><Font size="18.0" /></font>
+                    </Button>
+                    <Button fx:id="luckyButton" onAction="#openLucky" text="I'm feeling lucky!">
+                        <font><Font size="18.0" /></font>
+                    </Button>
+                </HBox>
+
+                <!-- Feed -->
+                <ScrollPane fx:id="feedScrollPane" prefHeight="685.0" prefWidth="910.0"
+                            fitToWidth="true" hbarPolicy="NEVER">
+                    <content>
+                        <VBox fx:id="feedVBox" spacing="15.0" prefWidth="880.0">
+                            <padding><Insets bottom="10.0" right="10.0" /></padding>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </VBox>
+
+            <!-- ─────────────  COMMUNITIES VIEW  ───────────── -->
+            <VBox fx:id="communitiesView" alignment="TOP_CENTER" spacing="20.0"
+                  visible="false" managed="false">
+
+                <Button alignment="CENTER" contentDisplay="CENTER"
+                        prefHeight="48.0" prefWidth="493.0"
+                        style="-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;"
+                        text="Trend Communities" textAlignment="CENTER">
+                    <font><Font size="21.0" /></font>
+                </Button>
+
+                <ScrollPane fitToWidth="true" prefHeight="589.0" prefWidth="910.0">
+                    <content>
+                        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="400.0" prefWidth="894.0">
+                            <GridPane fx:id="communityGrid" prefWidth="914.0"
+                                      AnchorPane.topAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                                      AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0"
+                                      hgap="15.0" vgap="15.0">
+                                <padding><Insets top="10.0" right="10.0" bottom="10.0" left="10.0" /></padding>
+                                <columnConstraints>
+                                    <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                                    <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                                    <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
+                                </columnConstraints>
+                            </GridPane>
+                        </AnchorPane>
+                    </content>
+                </ScrollPane>
+
+                <Button fx:id="createCommunityButton"
+                        alignment="CENTER" contentDisplay="CENTER"
+                        prefHeight="60.0" prefWidth="240.0"
+                        onAction="#handleCreateCommunity"
+                        style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;"
+                        text="Create Community" textAlignment="CENTER">
+                    <font><Font size="21.0" /></font>
+                </Button>
+            </VBox>
+
+            <!-- ─────────────  CREATE STYLE VIEW  ───────────── -->
+            <VBox fx:id="createStyleView" spacing="20.0" visible="false" managed="false">
+
+                <HBox prefHeight="489.0" prefWidth="910.0" spacing="10.0">
+
+                    <!-- Clothing Category Buttons -->
+                    <VBox spacing="10.0" prefWidth="90.0" alignment="TOP_CENTER">
+                        <Button fx:id="hatButton"    prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="HAT"    style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="topButton"    prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="TOP"    style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="dressButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="DRESS"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="coatButton"   prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="COAT"   style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="purseButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="PURSE"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="bottomButton" prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="BOTTOM" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="shoesButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="SHOES"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                    </VBox>
+
+                    <!-- Outfit Preview -->
+                    <ImageView fx:id="outfitPreview" fitHeight="483.0" fitWidth="690.0"
+                               pickOnBounds="true" preserveRatio="true" HBox.hgrow="ALWAYS" />
+
+                    <!-- Post Button -->
+                    <Button fx:id="postStyleButton"
+                            prefHeight="54.0" prefWidth="135.0"
+                            onAction="#handlePostStyle"
+                            style="-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;"
+                            text="POST" />
+                </HBox>
+            </VBox>
+
+            <!-- ─────────────  OWN PROFILE VIEW  ───────────── -->
+            <VBox fx:id="profileView" spacing="15.0" visible="false" managed="false">
+
+                <!-- Username Banner -->
+                <Label fx:id="usernameLabel" alignment="CENTER"
+                       prefHeight="53.0" maxWidth="Infinity"
+                       style="-fx-background-color: #745a42; -fx-background-radius: 50;"
+                       text="User Name" textFill="WHITE">
+                    <font><Font size="36.0" /></font>
+                    <VBox.margin><Insets left="15.0" right="15.0" /></VBox.margin>
+                </Label>
+
+                <!-- Followers / Following -->
+                <HBox alignment="CENTER" spacing="50.0">
+                    <Button fx:id="followersButton" alignment="CENTER"
+                            prefHeight="45.0" prefWidth="187.0"
+                            onAction="#handleShowFollowers"
+                            style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-font-size: 16px;"
+                            text="Followers" />
+                    <Button fx:id="followingButton" alignment="CENTER"
+                            prefHeight="45.0" prefWidth="187.0"
+                            onAction="#handleShowFollowing"
+                            style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-font-size: 16px;"
+                            text="Following" />
+                </HBox>
+
+                <!-- Saved Outfits  |  Posts (two-column) -->
+                <HBox spacing="15.0" VBox.vgrow="ALWAYS">
+                    <ScrollPane prefHeight="600.0" prefWidth="450.0" fitToWidth="true" HBox.hgrow="ALWAYS">
+                        <content>
+                            <VBox fx:id="savedOutfitsVBox" spacing="10.0" prefWidth="430.0">
+                                <padding><Insets top="10.0" right="10.0" bottom="10.0" left="10.0" /></padding>
+                                <Label alignment="CENTER" prefHeight="44.0" maxWidth="Infinity"
+                                       style="-fx-background-color: #745a42; -fx-background-radius: 50;"
+                                       text="Saved Outfits" textFill="WHITE">
+                                    <font><Font size="28.0" /></font>
+                                </Label>
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                    <ScrollPane prefHeight="600.0" prefWidth="450.0" fitToWidth="true" HBox.hgrow="ALWAYS">
+                        <content>
+                            <VBox fx:id="myPostsVBox" spacing="10.0" prefWidth="430.0">
+                                <padding><Insets top="10.0" right="10.0" bottom="10.0" left="10.0" /></padding>
+                                <Label alignment="CENTER" prefHeight="44.0" maxWidth="Infinity"
+                                       style="-fx-background-color: #745a42; -fx-background-radius: 50;"
+                                       text="Posts" textFill="WHITE">
+                                    <font><Font size="28.0" /></font>
+                                </Label>
+                            </VBox>
+                        </content>
+                    </ScrollPane>
+                </HBox>
+            </VBox>
+
+            <!-- ─────────────  SETTINGS VIEW  ───────────── -->
+            <VBox fx:id="settingsView" spacing="60.0" visible="false" managed="false">
+                <padding><Insets top="40.0" left="60.0" /></padding>
+
+                <!-- Profile Type -->
+                <HBox spacing="40.0" alignment="CENTER_LEFT">
+                    <Button style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15; -fx-padding: 10 20;"
+                            text="Profile Type" />
+                    <Button fx:id="publicButton"
+                            onAction="#handleSetPublic"
+                            style="-fx-background-color: #779946; -fx-border-color: #8c9c76; -fx-border-radius: 15; -fx-background-radius: 15; -fx-padding: 10 20;"
+                            text="Public" />
+                    <Button fx:id="privateButton"
+                            onAction="#handleSetPrivate"
+                            style="-fx-background-color: transparent; -fx-border-color: #8c9c76; -fx-border-radius: 15; -fx-padding: 10 20;"
+                            text="Private" />
+                </HBox>
+
+                <!-- Blocked Profiles -->
+                <Button fx:id="blockedProfilesButton"
+                        onAction="#handleBlockedProfiles"
+                        style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15; -fx-padding: 10 20;"
+                        text="Blocked Profiles" />
+
+                <!-- Explicit Filter -->
+                <HBox spacing="40.0" alignment="CENTER_LEFT">
+                    <Button style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15; -fx-padding: 10 20;"
+                            text="Explicit Comment Filter" />
+                    <Button fx:id="explicitFilterToggle"
+                            onAction="#handleToggleExplicitFilter"
+                            style="-fx-background-color: #779946; -fx-border-color: #8c9c76; -fx-border-radius: 15; -fx-background-radius: 15; -fx-padding: 10 20;"
+                            text="ON" />
+                </HBox>
+
+                <!-- Contact Support -->
+                <Button fx:id="contactSupportButton"
+                        onAction="#handleContactSupport"
+                        style="-fx-background-color: #8c9c76; -fx-border-color: #8c9c76; -fx-border-radius: 15px; -fx-background-radius: 15; -fx-padding: 10 20;"
+                        text="Contact Support" />
+
+                <!-- Reset Profile -->
+                <Button fx:id="resetProfileButton"
+                        onAction="#handleResetProfile"
+                        style="-fx-background-color: #ab2c2c; -fx-text-fill: white; -fx-background-radius: 15; -fx-padding: 10 20;"
+                        text="Reset Profile" />
+            </VBox>
+
+            <!-- ─────────────  COMMUNITY DETAIL VIEW  ───────────── -->
+            <VBox fx:id="communityDetailView" spacing="20.0" visible="false" managed="false">
+
+                <!-- Back + Community Name -->
+                <HBox alignment="CENTER_LEFT" spacing="15.0">
+                    <Button fx:id="backFromCommunityButton"
+                            onAction="#openCommunities"
+                            style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 5 15;"
+                            text="← Back" />
+                    <Label fx:id="communityNameLabel" alignment="CENTER"
+                           prefHeight="53.0" maxWidth="Infinity"
+                           style="-fx-background-color: #745a42; -fx-background-radius: 50;"
+                           text="Community Name" textFill="WHITE" HBox.hgrow="ALWAYS">
+                        <font><Font size="36.0" /></font>
+                    </Label>
+                </HBox>
+
+                <!-- Posts Feed -->
+                <ScrollPane prefHeight="600.0" prefWidth="910.0" fitToWidth="true"
+                            hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+                    <content>
+                        <VBox fx:id="communityPostsVBox" spacing="15.0" prefWidth="880.0">
+                            <padding><Insets top="10.0" right="10.0" bottom="10.0" left="10.0" /></padding>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+
+                <!-- Add Post -->
+                <HBox alignment="CENTER_RIGHT">
+                    <Button fx:id="addPostToCommunityButton"
+                            onAction="#handleAddPostToCommunity"
+                            style="-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;"
+                            text="Add Post">
+                        <font><Font size="18.0" /></font>
+                    </Button>
+                </HBox>
+            </VBox>
+
+            <!-- ─────────────  OTHER USER PROFILE VIEW  ───────────── -->
+            <VBox fx:id="otherProfileView" spacing="15.0" visible="false" managed="false">
+
+                <!-- Back + Username -->
+                <HBox alignment="CENTER_LEFT" spacing="15.0">
+                    <Button fx:id="backFromOtherProfileButton"
+                            onAction="#openHome"
+                            style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 5 15;"
+                            text="← Back" />
+                    <Label fx:id="otherUsernameLabel" alignment="CENTER"
+                           prefHeight="53.0" maxWidth="Infinity"
+                           style="-fx-background-color: #745a42; -fx-background-radius: 50;"
+                           text="User Name" textFill="WHITE" HBox.hgrow="ALWAYS">
+                        <font><Font size="36.0" /></font>
+                    </Label>
+                </HBox>
+
+                <!-- Followers / Following / Follow -->
+                <HBox alignment="CENTER" spacing="50.0">
+                    <Button alignment="CENTER"
+                            prefHeight="45.0" prefWidth="187.0"
+                            style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;"
+                            text="Followers" />
+                    <Button alignment="CENTER"
+                            prefHeight="45.0" prefWidth="187.0"
+                            style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;"
+                            text="Following" />
+                    <Button fx:id="followUserButton"
+                            alignment="CENTER"
+                            prefHeight="45.0" prefWidth="130.0"
+                            onAction="#handleFollowUser"
+                            style="-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;"
+                            text="Follow" />
+                </HBox>
+
+                <!-- Posts -->
+                <ScrollPane prefHeight="600.0" prefWidth="910.0" fitToWidth="true"
+                            hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+                    <content>
+                        <VBox fx:id="otherPostsVBox" spacing="15.0" prefWidth="880.0">
+                            <padding><Insets top="10.0" right="10.0" bottom="10.0" left="10.0" /></padding>
+                            <Label alignment="CENTER" prefHeight="44.0" maxWidth="Infinity"
+                                   style="-fx-background-color: #745a42; -fx-background-radius: 50;"
+                                   text="Posts" textFill="WHITE">
+                                <font><Font size="28.0" /></font>
+                            </Label>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </VBox>
+
+        </StackPane>
+    </center>
+
 </BorderPane>
