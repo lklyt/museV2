@@ -6,6 +6,7 @@ import com.muse.models.ClothingItem;
 import com.muse.models.Post;
 import com.muse.models.User;
 import com.muse.models.ClothingCategory;
+import com.muse.service.CommentService;
 import com.muse.service.CommunityService;
 import com.muse.service.PostService;
 import com.muse.service.UserService;
@@ -13,7 +14,6 @@ import com.muse.service.ClothingItemService;
 import com.muse.util.SessionManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -26,11 +26,13 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,7 @@ public class DashboardController {
 
     // ── Services ─────────────────────────────────────────────────────────────
     private final PostService postService = new PostService();
+    private final CommentService commentService = new CommentService();
     private final CommunityService communityService = new CommunityService();
     private final UserService userService = new UserService();
     private final ClothingItemService clothingItemService = new ClothingItemService();
@@ -1277,75 +1280,129 @@ public class DashboardController {
      * returns a styled VBox placeholder.
      */
     private Node buildPostCard(Post post) {
-    // 1. Main container remains an HBox
-    HBox card = new HBox(15); 
-    card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 15;");
-    card.setMaxWidth(Double.MAX_VALUE);
-    card.setAlignment(Pos.TOP_LEFT);
+        // Outer card uses HBox so the outfit takes centre stage and comments sit alongside it
+        HBox card = new HBox(15);
+        card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 15;");
+        card.setMaxWidth(Double.MAX_VALUE);
+        card.setAlignment(Pos.TOP_LEFT);
 
-    // --- LEFT SECTION: BIGGER OUTFIT (The Star of the Show) ---
-    VBox leftSection = new VBox(10);
-    // Increased from 220 to 450 to make it much more prominent
-    leftSection.setPrefWidth(450); 
-    HBox.setHgrow(leftSection, Priority.ALWAYS); // Let the outfit take available space
+        // ── LEFT: large outfit preview ────────────────────────────────────────
+        VBox leftSection = new VBox(10);
+        leftSection.setPrefWidth(450);
+        HBox.setHgrow(leftSection, Priority.ALWAYS);
 
-    Label author = new Label("by @" + post.getAuthorUsername());
-    author.setStyle("-fx-font-size: 14px; -fx-text-fill: #2e2e2e; -fx-font-weight: bold; -fx-cursor: hand;");
-    author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
+        Label author = new Label("by @" + post.getAuthorUsername());
+        author.setStyle("-fx-font-size: 14px; -fx-text-fill: #2e2e2e; -fx-font-weight: bold; -fx-cursor: hand;");
+        author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
 
-    AnchorPane postOutfitPreview = new AnchorPane();
-    // Expand dimensions for a high-impact look
-    postOutfitPreview.setPrefWidth(450); 
-    postOutfitPreview.setPrefHeight(550); 
-    postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; " +
-                               "-fx-border-width: 1; -fx-border-radius: 15; -fx-background-radius: 15;");
+        AnchorPane postOutfitPreview = new AnchorPane();
+        postOutfitPreview.setPrefWidth(450);
+        postOutfitPreview.setPrefHeight(550);
+        postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; " +
+                                   "-fx-border-width: 1; -fx-border-radius: 15; -fx-background-radius: 15;");
 
-    renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
-    
-    if (postOutfitPreview.getChildren().isEmpty()) {
-        Label noItemsLabel = new Label("Empty Lookbook");
-        noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 14px;");
-        noItemsLabel.setLayoutX(170); // Centered for the larger width
-        noItemsLabel.setLayoutY(250);
-        postOutfitPreview.getChildren().add(noItemsLabel);
+        renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
+        if (postOutfitPreview.getChildren().isEmpty()) {
+            Label noItemsLabel = new Label("Empty Lookbook");
+            noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 14px;");
+            noItemsLabel.setLayoutX(170);
+            noItemsLabel.setLayoutY(250);
+            postOutfitPreview.getChildren().add(noItemsLabel);
+        }
+
+        leftSection.getChildren().addAll(author, postOutfitPreview);
+
+        // ── RIGHT: scrollable comments + interactive input ────────────────────
+        VBox rightSection = new VBox(8);
+        rightSection.setPrefWidth(220);
+        rightSection.setMinWidth(220);
+        rightSection.setMaxWidth(220);
+
+        // Scrollable comment list
+        VBox commentsContent = new VBox(4);
+        commentsContent.setStyle("-fx-background-color: #f4efe8; -fx-padding: 10; -fx-border-radius: 12; -fx-background-radius: 12;");
+        refreshCommentsBox(commentsContent, post);
+
+        ScrollPane commentsScroll = new ScrollPane(commentsContent);
+        commentsScroll.setFitToWidth(true);
+        commentsScroll.setPrefHeight(460);
+        commentsScroll.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; " +
+                                "-fx-background-radius: 12;");
+        VBox.setVgrow(commentsScroll, Priority.ALWAYS);
+
+        // Comment input row
+        TextField commentInput = new TextField();
+        commentInput.setPromptText("Add a comment...");
+        commentInput.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(commentInput, Priority.ALWAYS);
+
+        Button commentButton = new Button("Post");
+        commentButton.setStyle("-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 12;");
+        commentButton.setOnAction(e -> {
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
+            if (currentUserId < 0) {
+                showErrorAlert("Not Logged In", "Please log in before adding a comment.");
+                return;
+            }
+            String commentText = commentInput.getText().trim();
+            if (commentText.isEmpty()) {
+                showErrorAlert("Validation Error", "Comment cannot be empty.");
+                return;
+            }
+            try {
+                commentService.addComment(post.getPostId(), currentUserId, commentText);
+                post.setComments(commentService.getCommentsByPost(post.getPostId()));
+                refreshCommentsBox(commentsContent, post);
+                commentInput.clear();
+            } catch (Exception ex) {
+                logger.error("Error adding comment to post " + post.getPostId(), ex);
+                showErrorAlert("Comment Failed", "Could not add comment: " + ex.getMessage());
+            }
+        });
+
+        HBox commentRow = new HBox(6, commentInput, commentButton);
+        commentRow.setAlignment(Pos.CENTER_LEFT);
+
+        rightSection.getChildren().addAll(commentsScroll, commentRow);
+
+        card.getChildren().addAll(leftSection, rightSection);
+        return card;
     }
 
-    leftSection.getChildren().addAll(author, postOutfitPreview);
+    private void refreshCommentsBox(VBox commentsBox, Post post) {
+        commentsBox.getChildren().clear();
+        if (post.getComments() == null || post.getComments().isEmpty()) {
+            Label noCommentsLabel = new Label("No comments yet.");
+            noCommentsLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #6e6a63;");
+            commentsBox.getChildren().add(noCommentsLabel);
+            return;
+        }
 
-    // --- RIGHT SECTION: SMALLER COMMENTS (The Sidebar) ---
-    VBox commentsBox = new VBox(8);
-    // Fixed smaller width so it doesn't compete with the outfit
-    commentsBox.setPrefWidth(220); 
-    commentsBox.setMinWidth(220);
-    commentsBox.setMaxWidth(220);
-    commentsBox.setStyle("-fx-background-color: #f4efe8; -fx-padding: 12; -fx-border-radius: 12; -fx-background-radius: 12;");
+        Label commentsTitle = new Label(post.getComments().size() + " comment" + (post.getComments().size() == 1 ? "" : "s"));
+        commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
+        commentsBox.getChildren().add(commentsTitle);
 
-    Label commentsTitle = new Label("Comments");
-    commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
-    commentsBox.getChildren().add(commentsTitle);
-
-    if (post.getComments() != null && !post.getComments().isEmpty()) {
-        int maxComments = 12; // Plenty of room now that the card is taller
+        int maxCommentsToShow = 3;
         int shown = 0;
         for (Comment comment : post.getComments()) {
             if (comment == null) continue;
-            Label cLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
-            cLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #3f3b36;");
-            cLabel.setWrapText(true);
-            commentsBox.getChildren().add(cLabel);
-            if (++shown >= maxComments) break;
+            Label commentLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
+            commentLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3f3b36;");
+            commentLabel.setWrapText(true);
+            commentsBox.getChildren().add(commentLabel);
+            shown++;
+            if (shown >= maxCommentsToShow) {
+                break;
+            }
         }
-    } else {
-        Label none = new Label("Quiet here...");
-        none.setStyle("-fx-font-size: 11px; -fx-text-fill: #9c9791; -fx-font-style: italic;");
-        commentsBox.getChildren().add(none);
+
+        if (post.getComments().size() > maxCommentsToShow) {
+            Label moreLabel = new Label("View " + (post.getComments().size() - maxCommentsToShow) + " more comment" + ((post.getComments().size() - maxCommentsToShow) == 1 ? "" : "s"));
+            moreLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #5c5348;");
+            commentsBox.getChildren().add(moreLabel);
+        }
     }
 
-    // 2. Final assembly
-    card.getChildren().addAll(leftSection, commentsBox);
-
-    return card;
-}
     private Map<ClothingCategory, ClothingItem> toCategoryMap(List<ClothingItem> items) {
         Map<ClothingCategory, ClothingItem> itemsByCategory = new EnumMap<>(ClothingCategory.class);
         if (items == null) {
