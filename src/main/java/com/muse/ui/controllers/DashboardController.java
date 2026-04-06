@@ -13,6 +13,7 @@ import com.muse.service.ClothingItemService;
 import com.muse.util.SessionManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -27,6 +28,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -1274,68 +1277,75 @@ public class DashboardController {
      * returns a styled VBox placeholder.
      */
     private Node buildPostCard(Post post) {
-        VBox card = new VBox(10);
-        card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 12;");
-        card.setMaxWidth(Double.MAX_VALUE);
+    // 1. Main container remains an HBox
+    HBox card = new HBox(15); 
+    card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 15;");
+    card.setMaxWidth(Double.MAX_VALUE);
+    card.setAlignment(Pos.TOP_LEFT);
 
-        Label author = new Label("by @" + post.getAuthorUsername());
-        author.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a4a4a;");
-        // Clicking the author label navigates to their profile
-        author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
-        author.setStyle(author.getStyle() + " -fx-cursor: hand;");
+    // --- LEFT SECTION: BIGGER OUTFIT (The Star of the Show) ---
+    VBox leftSection = new VBox(10);
+    // Increased from 220 to 450 to make it much more prominent
+    leftSection.setPrefWidth(450); 
+    HBox.setHgrow(leftSection, Priority.ALWAYS); // Let the outfit take available space
 
-        AnchorPane postOutfitPreview = new AnchorPane();
-        postOutfitPreview.setPrefWidth(220);
-        postOutfitPreview.setPrefHeight(340);
-        postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; -fx-border-width: 1; -fx-border-radius: 12; -fx-background-radius: 12;");
+    Label author = new Label("by @" + post.getAuthorUsername());
+    author.setStyle("-fx-font-size: 14px; -fx-text-fill: #2e2e2e; -fx-font-weight: bold; -fx-cursor: hand;");
+    author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
 
-        renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
-        if (postOutfitPreview.getChildren().isEmpty()) {
-            Label noItemsLabel = infoLabel("No outfit items attached.");
-            noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 13px;");
-            noItemsLabel.setLayoutX(20);
-            noItemsLabel.setLayoutY(150);
-            postOutfitPreview.getChildren().add(noItemsLabel);
-        }
+    AnchorPane postOutfitPreview = new AnchorPane();
+    // Expand dimensions for a high-impact look
+    postOutfitPreview.setPrefWidth(450); 
+    postOutfitPreview.setPrefHeight(550); 
+    postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; " +
+                               "-fx-border-width: 1; -fx-border-radius: 15; -fx-background-radius: 15;");
 
-        card.getChildren().addAll(author, postOutfitPreview);
-
-        if (post.getComments() != null && !post.getComments().isEmpty()) {
-            VBox commentsBox = new VBox(4);
-            commentsBox.setStyle("-fx-background-color: #f4efe8; -fx-padding: 10; -fx-border-radius: 12; -fx-background-radius: 12;");
-
-            Label commentsTitle = new Label(post.getComments().size() + " comment" + (post.getComments().size() == 1 ? "" : "s"));
-            commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
-            commentsBox.getChildren().add(commentsTitle);
-
-            int maxCommentsToShow = 3;
-            int shown = 0;
-            for (Comment comment : post.getComments()) {
-                if (comment == null) continue;
-                Label commentLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
-                commentLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3f3b36;");
-                commentLabel.setWrapText(true);
-                commentsBox.getChildren().add(commentLabel);
-                shown++;
-                if (shown >= maxCommentsToShow) {
-                    break;
-                }
-            }
-            if (post.getComments().size() > maxCommentsToShow) {
-                Label moreLabel = new Label("View " + (post.getComments().size() - maxCommentsToShow) + " more comment" + (post.getComments().size() - maxCommentsToShow == 1 ? "" : "s"));
-                moreLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #5c5348;");
-                commentsBox.getChildren().add(moreLabel);
-            }
-            card.getChildren().add(commentsBox);
-        } else {
-            Label noCommentsLabel = new Label("No comments yet.");
-            noCommentsLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #6e6a63;");
-            card.getChildren().add(noCommentsLabel);
-        }
-
-        return card;
+    renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
+    
+    if (postOutfitPreview.getChildren().isEmpty()) {
+        Label noItemsLabel = new Label("Empty Lookbook");
+        noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 14px;");
+        noItemsLabel.setLayoutX(170); // Centered for the larger width
+        noItemsLabel.setLayoutY(250);
+        postOutfitPreview.getChildren().add(noItemsLabel);
     }
 
+    leftSection.getChildren().addAll(author, postOutfitPreview);
+
+    // --- RIGHT SECTION: SMALLER COMMENTS (The Sidebar) ---
+    VBox commentsBox = new VBox(8);
+    // Fixed smaller width so it doesn't compete with the outfit
+    commentsBox.setPrefWidth(220); 
+    commentsBox.setMinWidth(220);
+    commentsBox.setMaxWidth(220);
+    commentsBox.setStyle("-fx-background-color: #f4efe8; -fx-padding: 12; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+    Label commentsTitle = new Label("Comments");
+    commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
+    commentsBox.getChildren().add(commentsTitle);
+
+    if (post.getComments() != null && !post.getComments().isEmpty()) {
+        int maxComments = 12; // Plenty of room now that the card is taller
+        int shown = 0;
+        for (Comment comment : post.getComments()) {
+            if (comment == null) continue;
+            Label cLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
+            cLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #3f3b36;");
+            cLabel.setWrapText(true);
+            commentsBox.getChildren().add(cLabel);
+            if (++shown >= maxComments) break;
+        }
+    } else {
+        Label none = new Label("Quiet here...");
+        none.setStyle("-fx-font-size: 11px; -fx-text-fill: #9c9791; -fx-font-style: italic;");
+        commentsBox.getChildren().add(none);
+    }
+
+    // 2. Final assembly
+    card.getChildren().addAll(leftSection, commentsBox);
+
+    return card;
+}
     private Map<ClothingCategory, ClothingItem> toCategoryMap(List<ClothingItem> items) {
         Map<ClothingCategory, ClothingItem> itemsByCategory = new EnumMap<>(ClothingCategory.class);
         if (items == null) {
