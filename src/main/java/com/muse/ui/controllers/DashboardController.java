@@ -1,6 +1,7 @@
 package com.muse.ui.controllers;
 
 import com.muse.models.Community;
+import com.muse.models.ClothingItem;
 import com.muse.models.Post;
 import com.muse.models.User;
 import com.muse.models.ClothingCategory;
@@ -17,19 +18,23 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -116,7 +121,7 @@ public class DashboardController {
 
     // ── Create-Style view ─────────────────────────────────────────────────────
     @FXML
-    private ImageView outfitPreview;
+    private AnchorPane outfitPreviewPane;
     @FXML
     private Button postStyleButton;
     @FXML
@@ -193,6 +198,22 @@ public class DashboardController {
     private static final String NAV_INACTIVE = "-fx-background-color: transparent; -fx-text-fill: #333; -fx-font-size: 16px;";
     private static final String TAB_ACTIVE = "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;";
     private static final String TAB_INACTIVE = "-fx-background-color: transparent; -fx-border-color: #8c9c76; -fx-border-radius: 15;";
+    private static final String CATEGORY_ACTIVE = "-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;";
+    private static final String CATEGORY_INACTIVE = "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;";
+    private static final String ITEM_BUTTON_BASE = "-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
+            "-fx-border-radius: 10; -fx-padding: 5px; -fx-background-radius: 10px; -fx-font-size: 12px;";
+    private static final String ITEM_BUTTON_SELECTED = "-fx-background-color: #d9cfc6; -fx-border-color: #745a42; " +
+            "-fx-border-width: 3; -fx-border-radius: 10; -fx-padding: 5px; -fx-background-radius: 10px; -fx-font-size: 12px;";
+
+    private static final ClothingCategory[] PREVIEW_RENDER_ORDER = {
+            ClothingCategory.BOTTOMS,
+            ClothingCategory.DRESSES,
+            ClothingCategory.SHOES,
+            ClothingCategory.TOPS,
+            ClothingCategory.COATS,
+            ClothingCategory.HATS,
+            ClothingCategory.PURSES
+    };
 
     /** Tracks which home-tab (forYou / discover) is currently active. */
     private boolean isForYouActive = true;
@@ -204,6 +225,10 @@ public class DashboardController {
     private boolean explicitFilterOn = true;
     /** Whether the logged-in user's profile is public. */
     private boolean profileIsPublic = true;
+    /** Currently selected category in the Create Style view. */
+    private ClothingCategory selectedCreateStyleCategory = ClothingCategory.HATS;
+    /** Outfit composition currently selected by the user. */
+    private final Map<ClothingCategory, ClothingItem> selectedOutfitItems = new EnumMap<>(ClothingCategory.class);
 
     // ═════════════════════════════════════════════════════════════════════════
     // Lifecycle
@@ -224,6 +249,8 @@ public class DashboardController {
         forYouButton.setOnAction(e -> openForYou());
         discoverButton.setOnAction(e -> openDiscover());
         luckyButton.setOnAction(e -> openLucky());
+
+        initializeCreateStyleComposer();
 
         // Load the default view
         openHome();
@@ -255,6 +282,18 @@ public class DashboardController {
     public void openCreateStyle() {
         activateView(createStyleView);
         setNavActive(createStyleButton);
+        highlightCategorySelection(buttonForCategory(selectedCreateStyleCategory));
+        renderCurrentOutfitPreview();
+
+        try {
+            loadClothingItems(selectedCreateStyleCategory);
+        } catch (Exception ex) {
+            logger.error("Error refreshing create-style items", ex);
+            clothingItemsGrid.getChildren().clear();
+            Label errorLabel = infoLabel("Could not load items.");
+            GridPane.setColumnSpan(errorLabel, 2);
+            clothingItemsGrid.getChildren().add(errorLabel);
+        }
     }
 
     @FXML
@@ -440,25 +479,35 @@ public class DashboardController {
     // Create Style
     // ═════════════════════════════════════════════════════════════════════════
 
+    private void initializeCreateStyleComposer() {
+        highlightCategorySelection(buttonForCategory(selectedCreateStyleCategory));
+        renderCurrentOutfitPreview();
+
+        try {
+            loadClothingItems(selectedCreateStyleCategory);
+        } catch (Exception ex) {
+            logger.error("Could not initialize create-style items", ex);
+            clothingItemsGrid.getChildren().clear();
+            Label errorLabel = infoLabel("Could not load style items.");
+            GridPane.setColumnSpan(errorLabel, 2);
+            clothingItemsGrid.getChildren().add(errorLabel);
+        }
+    }
+
     @FXML
     private void selectCategory(javafx.event.ActionEvent event) {
-        // Highlight the selected category button; the rest are dimmed.
         Button clicked = (Button) event.getSource();
-        for (Button b : new Button[] { hatButton, topButton, dressButton,
-                coatButton, purseButton, bottomButton, shoesButton }) {
-            boolean isSelected = b == clicked;
-            b.setStyle("-fx-background-color: " + (isSelected ? "#745a42" : "#8c9c76") +
-                    "; -fx-text-fill: white; -fx-background-radius: 15;");
-        }
 
-        // Load clothing items for the selected category
-        String categoryName = clicked.getText();
         try {
+            String categoryName = clicked.getText();
             ClothingCategory category = ClothingCategory.valueOf(categoryName);
+
+            selectedCreateStyleCategory = category;
+            highlightCategorySelection(clicked);
             loadClothingItems(category);
             logger.info("Category selected: {}", categoryName);
         } catch (Exception ex) {
-            logger.error("Error loading clothing items for category: {}", categoryName, ex);
+            logger.error("Error loading clothing items for selected category", ex);
             clothingItemsGrid.getChildren().clear();
             Label errorLabel = infoLabel("Could not load items.");
             GridPane.setColumnSpan(errorLabel, 2);
@@ -466,10 +515,27 @@ public class DashboardController {
         }
     }
 
+    private void highlightCategorySelection(Button selected) {
+        for (Button button : new Button[] { hatButton, topButton, dressButton, coatButton, purseButton, bottomButton, shoesButton }) {
+            button.setStyle(button == selected ? CATEGORY_ACTIVE : CATEGORY_INACTIVE);
+        }
+    }
+
+    private Button buttonForCategory(ClothingCategory category) {
+        return switch (category) {
+            case HATS -> hatButton;
+            case TOPS -> topButton;
+            case DRESSES -> dressButton;
+            case COATS -> coatButton;
+            case PURSES -> purseButton;
+            case BOTTOMS -> bottomButton;
+            case SHOES -> shoesButton;
+        };
+    }
+
     private void loadClothingItems(ClothingCategory category) throws Exception {
         clothingItemsGrid.getChildren().clear();
 
-        // Use cached image service for better performance
         var items = clothingItemService.getItemsWithCachedImages(category);
         if (items.isEmpty()) {
             Label noItemsLabel = infoLabel("No items in this category.");
@@ -484,11 +550,12 @@ public class DashboardController {
             Button itemBtn = new Button();
             itemBtn.setPrefHeight(150);
             itemBtn.setPrefWidth(150);
-            itemBtn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
-                    "-fx-border-radius: 10; -fx-padding: 5px; -fx-background-radius: 10px; " +
-                    "-fx-font-size: 12px;");
+            itemBtn.setWrapText(true);
+            itemBtn.setStyle(isCurrentCategorySelection(category, item)
+                    ? ITEM_BUTTON_SELECTED
+                    : ITEM_BUTTON_BASE);
+            itemBtn.setOnAction(e -> handleOutfitItemSelection(category, item));
 
-            // Load image from cache or download and cache it
             if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
                 try {
                     Image img = new Image(item.getImageUrl());
@@ -499,7 +566,10 @@ public class DashboardController {
                     itemBtn.setGraphic(imgView);
                 } catch (Exception e) {
                     logger.warn("Could not load image for item: {}", item.getDescription());
+                    itemBtn.setText(item.getDescription());
                 }
+            } else {
+                itemBtn.setText(item.getDescription());
             }
 
             clothingItemsGrid.add(itemBtn, col, row);
@@ -511,14 +581,237 @@ public class DashboardController {
         }
     }
 
+    private boolean isCurrentCategorySelection(ClothingCategory category, ClothingItem candidate) {
+        ClothingItem selected = selectedOutfitItems.get(category);
+        if (selected == null) {
+            return false;
+        }
+        return isSameClothingItem(selected, candidate);
+    }
+
+    private boolean isSameClothingItem(ClothingItem left, ClothingItem right) {
+        if (left == null || right == null) {
+            return false;
+        }
+        if (left.getId() > 0 && right.getId() > 0) {
+            return left.getId() == right.getId();
+        }
+        return java.util.Objects.equals(left.getCategory(), right.getCategory())
+                && java.util.Objects.equals(left.getDescription(), right.getDescription())
+                && java.util.Objects.equals(left.getImageUrl(), right.getImageUrl());
+    }
+
+    private void handleOutfitItemSelection(ClothingCategory category, ClothingItem item) {
+        selectedOutfitItems.put(category, item);
+        enforceOutfitCombinationRules(category);
+        renderCurrentOutfitPreview();
+
+        try {
+            loadClothingItems(selectedCreateStyleCategory);
+        } catch (Exception ex) {
+            logger.error("Could not refresh selected clothing state", ex);
+        }
+    }
+
+    private void enforceOutfitCombinationRules(ClothingCategory changedCategory) {
+        if (changedCategory == ClothingCategory.DRESSES) {
+            selectedOutfitItems.remove(ClothingCategory.TOPS);
+            selectedOutfitItems.remove(ClothingCategory.BOTTOMS);
+        }
+
+        if (changedCategory == ClothingCategory.TOPS || changedCategory == ClothingCategory.BOTTOMS) {
+            selectedOutfitItems.remove(ClothingCategory.DRESSES);
+        }
+    }
+
+    private void renderCurrentOutfitPreview() {
+        renderOutfitPreview(outfitPreviewPane, selectedOutfitItems, true);
+    }
+
+    private void renderOutfitPreview(AnchorPane targetPane, Map<ClothingCategory, ClothingItem> selectedItems,
+            boolean showPlaceholderIfEmpty) {
+        if (targetPane == null) {
+            return;
+        }
+
+        targetPane.getChildren().clear();
+
+        double paneWidth = targetPane.getWidth() > 0 ? targetPane.getWidth() : targetPane.getPrefWidth();
+        double paneHeight = targetPane.getHeight() > 0 ? targetPane.getHeight() : targetPane.getPrefHeight();
+
+        boolean hasRenderableItem = false;
+        for (ClothingCategory category : PREVIEW_RENDER_ORDER) {
+            ClothingItem item = selectedItems.get(category);
+            if (item == null || item.getImageUrl() == null || item.getImageUrl().isBlank()) {
+                continue;
+            }
+
+            ImageView imageView = createPreviewImageView(item, category, paneWidth, paneHeight);
+            if (imageView != null) {
+                targetPane.getChildren().add(imageView);
+                hasRenderableItem = true;
+            }
+        }
+
+        if (!hasRenderableItem && showPlaceholderIfEmpty) {
+            Label placeholder = infoLabel("Select items to preview");
+            placeholder.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 14px;");
+            placeholder.setLayoutX(Math.max(16, paneWidth * 0.19));
+            placeholder.setLayoutY(Math.max(20, paneHeight * 0.45));
+            targetPane.getChildren().add(placeholder);
+        }
+    }
+
+    private ImageView createPreviewImageView(ClothingItem item, ClothingCategory category, double paneWidth, double paneHeight) {
+        PreviewSlot slot = previewSlotFor(category);
+        if (slot == null) {
+            return null;
+        }
+
+        try {
+            Image image = new Image(item.getImageUrl());
+            ImageView imageView = new ImageView(image);
+            imageView.setPreserveRatio(true);
+            imageView.setFitWidth(paneWidth * slot.widthRatio());
+            imageView.setFitHeight(paneHeight * slot.heightRatio());
+            imageView.setLayoutX(paneWidth * slot.xRatio());
+            imageView.setLayoutY(paneHeight * slot.yRatio());
+            return imageView;
+        } catch (Exception ex) {
+            logger.warn("Could not render outfit preview image for {}", item.getDescription(), ex);
+            return null;
+        }
+    }
+
+    private PreviewSlot previewSlotFor(ClothingCategory category) {
+        return switch (category) {
+            case HATS -> new PreviewSlot(0.38, 0.04, 0.24, 0.14);
+            case TOPS -> new PreviewSlot(0.25, 0.19, 0.54, 0.35);
+            case DRESSES -> new PreviewSlot(0.25, 0.20, 0.55, 0.48);
+            case COATS -> new PreviewSlot(0.69, 0.26, 0.27, 0.42);
+            case BOTTOMS -> new PreviewSlot(0.28, 0.52, 0.50, 0.28);
+            case SHOES -> new PreviewSlot(0.34, 0.80, 0.38, 0.17);
+            case PURSES -> new PreviewSlot(0.08, 0.43, 0.34, 0.21);
+            default -> null;
+        };
+    }
+
+    private record PreviewSlot(double xRatio, double yRatio, double widthRatio, double heightRatio) {
+    }
+
     @FXML
     private void handlePostStyle() {
-        // TODO: collect outfit data and create a post via postService
-        logger.info("Post Style clicked");
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                "Posting outfits coming soon!", ButtonType.OK);
-        alert.setHeaderText(null);
-        alert.showAndWait();
+        int authorId = SessionManager.getInstance().getCurrentUserId();
+        if (authorId <= 0) {
+            showErrorAlert("Not Logged In", "Please log in again before posting a style.");
+            return;
+        }
+
+        try {
+            List<ClothingItem> outfitToPost = buildValidatedOutfitSelection();
+            List<Community> communities = communityService.getAllCommunities();
+            if (communities.isEmpty()) {
+                showErrorAlert("No Communities", "Create a community first before posting a style.");
+                return;
+            }
+
+            Optional<Community> selectedCommunityOpt = promptCommunitySelection(communities);
+            if (selectedCommunityOpt.isEmpty()) {
+                return;
+            }
+
+            Community selectedCommunity = selectedCommunityOpt.get();
+            postService.createPost(authorId, selectedCommunity.getCommunityId(), outfitToPost);
+            logger.info("Created style post for user {} in community {}", authorId, selectedCommunity.getCommunityId());
+
+            selectedOutfitItems.clear();
+            renderCurrentOutfitPreview();
+            loadClothingItems(selectedCreateStyleCategory);
+
+            Alert success = new Alert(Alert.AlertType.INFORMATION,
+                    "Your outfit has been posted to " + selectedCommunity.getName() + ".", ButtonType.OK);
+            success.setHeaderText("Post created");
+            success.showAndWait();
+
+            openCommunityDetail(selectedCommunity.getCommunityId(), selectedCommunity.getName());
+        } catch (IllegalStateException ex) {
+            showErrorAlert("Incomplete Outfit", ex.getMessage());
+        } catch (Exception ex) {
+            logger.error("Error posting style", ex);
+            showErrorAlert("Post Failed", "Could not post outfit: " + ex.getMessage());
+        }
+    }
+
+    private List<ClothingItem> buildValidatedOutfitSelection() {
+        ClothingItem hat = selectedOutfitItems.get(ClothingCategory.HATS);
+        ClothingItem top = selectedOutfitItems.get(ClothingCategory.TOPS);
+        ClothingItem bottom = selectedOutfitItems.get(ClothingCategory.BOTTOMS);
+        ClothingItem dress = selectedOutfitItems.get(ClothingCategory.DRESSES);
+        ClothingItem coat = selectedOutfitItems.get(ClothingCategory.COATS);
+        ClothingItem shoes = selectedOutfitItems.get(ClothingCategory.SHOES);
+        ClothingItem purse = selectedOutfitItems.get(ClothingCategory.PURSES);
+
+        boolean hasDress = dress != null;
+        boolean hasTopAndBottom = top != null && bottom != null;
+
+        if (hasDress && (top != null || bottom != null)) {
+            throw new IllegalStateException("Select either a dress, or a top and bottom combination.");
+        }
+
+        if (!hasDress && !hasTopAndBottom) {
+            throw new IllegalStateException("Please select either a dress, or both a top and bottom.");
+        }
+
+        if (shoes == null || purse == null) {
+            throw new IllegalStateException("Please select both shoes and a purse.");
+        }
+
+        List<ClothingItem> outfitToPost = new ArrayList<>();
+        if (hat != null) {
+            outfitToPost.add(hat);
+        }
+        if (hasDress) {
+            outfitToPost.add(dress);
+        } else {
+            outfitToPost.add(top);
+            outfitToPost.add(bottom);
+        }
+        if (coat != null) {
+            outfitToPost.add(coat);
+        }
+        outfitToPost.add(shoes);
+        outfitToPost.add(purse);
+        return outfitToPost;
+    }
+
+    private Optional<Community> promptCommunitySelection(List<Community> communities) {
+        String defaultCommunityName = findCommunityNameById(communities, currentCommunityId)
+                .orElse(communities.get(0).getName());
+
+        List<String> communityNames = communities.stream()
+                .map(Community::getName)
+                .toList();
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(defaultCommunityName, communityNames);
+        dialog.setTitle("Post Outfit");
+        dialog.setHeaderText("Choose a community for this style");
+        dialog.setContentText("Community:");
+
+        Optional<String> chosenName = dialog.showAndWait();
+        if (chosenName.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return communities.stream()
+                .filter(c -> c.getName().equals(chosenName.get()))
+                .findFirst();
+    }
+
+    private Optional<String> findCommunityNameById(List<Community> communities, int communityId) {
+        return communities.stream()
+                .filter(c -> c.getCommunityId() == communityId)
+                .map(Community::getName)
+                .findFirst();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -933,7 +1226,7 @@ public class DashboardController {
      * returns a styled VBox placeholder.
      */
     private Node buildPostCard(Post post) {
-        VBox card = new VBox(6);
+        VBox card = new VBox(10);
         card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 12;");
         card.setMaxWidth(Double.MAX_VALUE);
 
@@ -943,8 +1236,39 @@ public class DashboardController {
         author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
         author.setStyle(author.getStyle() + " -fx-cursor: hand;");
 
-        card.getChildren().addAll(author);
+        AnchorPane postOutfitPreview = new AnchorPane();
+        postOutfitPreview.setPrefWidth(220);
+        postOutfitPreview.setPrefHeight(340);
+        postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; -fx-border-width: 1; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+        renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
+        if (postOutfitPreview.getChildren().isEmpty()) {
+            Label noItemsLabel = infoLabel("No outfit items attached.");
+            noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 13px;");
+            noItemsLabel.setLayoutX(20);
+            noItemsLabel.setLayoutY(150);
+            postOutfitPreview.getChildren().add(noItemsLabel);
+        }
+
+        card.getChildren().addAll(author, postOutfitPreview);
         return card;
+    }
+
+    private Map<ClothingCategory, ClothingItem> toCategoryMap(List<ClothingItem> items) {
+        Map<ClothingCategory, ClothingItem> itemsByCategory = new EnumMap<>(ClothingCategory.class);
+        if (items == null) {
+            return itemsByCategory;
+        }
+
+        for (ClothingItem item : items) {
+            if (item == null || item.getCategory() == null) {
+                continue;
+            }
+
+            itemsByCategory.putIfAbsent(item.getCategory(), item);
+        }
+
+        return itemsByCategory;
     }
 
     /** Styled info/placeholder label. */

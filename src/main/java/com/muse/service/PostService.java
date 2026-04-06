@@ -2,20 +2,24 @@ package com.muse.service;
 
 import com.muse.dao.PostDAO;
 import com.muse.dao.PostDAOImpl;
+import com.muse.models.ClothingItem;
 import com.muse.models.Post;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 public class PostService {
-    private static final Logger logger = LoggerFactory.getLogger(PostService.class);
     private final PostDAO postDAO = new PostDAOImpl();
 
     public Post createPost(int authorId, int communityId) throws Exception {
 
         Post post = new Post(authorId, communityId);
+        return postDAO.save(post);
+    }
+
+    public Post createPost(int authorId, int communityId, List<ClothingItem> clothingItems) throws Exception {
+        Post post = new Post(authorId, communityId);
+        post.setClothingItems(clothingItems);
         return postDAO.save(post);
     }
 

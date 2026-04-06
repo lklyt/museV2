@@ -5,7 +5,6 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
@@ -178,8 +177,9 @@
 
                     <!-- Outfit Preview and Post Button -->
                     <VBox spacing="10.0" prefWidth="250.0">
-                        <ImageView fx:id="outfitPreview" fitHeight="400.0" fitWidth="230.0"
-                                   pickOnBounds="true" preserveRatio="true" VBox.vgrow="ALWAYS" />
+                        <AnchorPane fx:id="outfitPreviewPane" prefHeight="420.0" prefWidth="230.0"
+                                    style="-fx-background-color: #f8f8f6; -fx-border-color: #c9c2bc; -fx-border-width: 1; -fx-border-radius: 18; -fx-background-radius: 18;"
+                                    VBox.vgrow="ALWAYS" />
                         <Button fx:id="postStyleButton"
                                 prefHeight="54.0" maxWidth="Infinity"
                                 onAction="#handlePostStyle"
