@@ -3,9 +3,11 @@ package com.muse.ui.controllers;
 import com.muse.models.Community;
 import com.muse.models.Post;
 import com.muse.models.User;
+import com.muse.models.ClothingCategory;
 import com.muse.service.CommunityService;
 import com.muse.service.PostService;
 import com.muse.service.UserService;
+import com.muse.service.ClothingItemService;
 import com.muse.util.SessionManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,8 +19,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -53,6 +57,7 @@ public class DashboardController {
     private final PostService      postService      = new PostService();
     private final CommunityService communityService = new CommunityService();
     private final UserService      userService      = new UserService();
+    private final ClothingItemService clothingItemService = new ClothingItemService();
 
     // ── Sidebar ───────────────────────────────────────────────────────────────
     @FXML private TextField searchField;
@@ -85,6 +90,7 @@ public class DashboardController {
     // ── Create-Style view ─────────────────────────────────────────────────────
     @FXML private ImageView outfitPreview;
     @FXML private Button    postStyleButton;
+    @FXML private HBox      clothingItemsHBox;
     // Category buttons
     @FXML private Button hatButton;
     @FXML private Button topButton;
@@ -356,8 +362,53 @@ public class DashboardController {
             b.setStyle("-fx-background-color: " + (isSelected ? "#745a42" : "#8c9c76") +
                        "; -fx-text-fill: white; -fx-background-radius: 15;");
         }
-        // TODO: open an item picker for the selected category and update outfitPreview
-        logger.info("Category selected: {}", clicked.getText());
+
+        // Load clothing items for the selected category
+        String categoryName = clicked.getText();
+        try {
+            ClothingCategory category = ClothingCategory.valueOf(categoryName);
+            loadClothingItems(category);
+            logger.info("Category selected: {}", categoryName);
+        } catch (Exception ex) {
+            logger.error("Error loading clothing items for category: {}", categoryName, ex);
+            clothingItemsHBox.getChildren().clear();
+            clothingItemsHBox.getChildren().add(infoLabel("Could not load items."));
+        }
+    }
+
+    private void loadClothingItems(ClothingCategory category) throws Exception {
+        clothingItemsHBox.getChildren().clear();
+
+        var items = clothingItemService.getItemsByCategory(category);
+        if (items.isEmpty()) {
+            clothingItemsHBox.getChildren().add(infoLabel("No items in this category."));
+            return;
+        }
+
+        for (var item : items) {
+            Button itemBtn = new Button(item.getDescription());
+            itemBtn.setPrefHeight(60);
+            itemBtn.setPrefWidth(90);
+            itemBtn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
+                           "-fx-border-radius: 10; -fx-padding: 5px; -fx-background-radius: 10px; " +
+                           "-fx-font-size: 12px;");
+
+            // Set a tooltip with the image URL if available
+            if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+                try {
+                    Image img = new Image(item.getImageUrl(), 70, 70, true, true);
+                    ImageView imgView = new ImageView(img);
+                    imgView.setFitHeight(50);
+                    imgView.setFitWidth(50);
+                    imgView.setPreserveRatio(true);
+                    itemBtn.setGraphic(imgView);
+                } catch (Exception e) {
+                    logger.warn("Could not load image for item: {}", item.getDescription());
+                }
+            }
+
+            clothingItemsHBox.getChildren().add(itemBtn);
+        }
     }
 
     @FXML

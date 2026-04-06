@@ -155,18 +155,27 @@
 
                     <!-- Clothing Category Buttons -->
                     <VBox spacing="10.0" prefWidth="90.0" alignment="TOP_CENTER">
-                        <Button fx:id="hatButton"    prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="HAT"    style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
-                        <Button fx:id="topButton"    prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="TOP"    style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
-                        <Button fx:id="dressButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="DRESS"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
-                        <Button fx:id="coatButton"   prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="COAT"   style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
-                        <Button fx:id="purseButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="PURSE"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
-                        <Button fx:id="bottomButton" prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="BOTTOM" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="hatButton"    prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="HATS"    style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="topButton"    prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="TOPS"    style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="dressButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="DRESSES"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="coatButton"   prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="COATS"   style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="purseButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="PURSES"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
+                        <Button fx:id="bottomButton" prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="BOTTOMS" style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
                         <Button fx:id="shoesButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="SHOES"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
                     </VBox>
 
-                    <!-- Outfit Preview -->
-                    <ImageView fx:id="outfitPreview" fitHeight="483.0" fitWidth="690.0"
-                               pickOnBounds="true" preserveRatio="true" HBox.hgrow="ALWAYS" />
+                    <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+                        <!-- Outfit Preview -->
+                        <ImageView fx:id="outfitPreview" fitHeight="400.0" fitWidth="600.0"
+                                   pickOnBounds="true" preserveRatio="true" VBox.vgrow="ALWAYS" />
+
+                        <!-- Clothing Items in Single Line -->
+                        <ScrollPane fitToHeight="true" prefHeight="70.0">
+                            <HBox fx:id="clothingItemsHBox" spacing="10.0" alignment="CENTER_LEFT">
+                                <padding><Insets left="5.0" right="5.0" top="5.0" bottom="5.0" /></padding>
+                            </HBox>
+                        </ScrollPane>
+                    </VBox>
 
                     <!-- Post Button -->
                     <Button fx:id="postStyleButton"
