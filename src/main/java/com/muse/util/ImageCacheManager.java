@@ -167,10 +167,11 @@ public class ImageCacheManager {
             ImageMetadata metadata = cached.get();
             if (!metadata.isExpired()) {
                 metadata.updateLastAccessedTime();
-                String cachedPath = ImageCacheConfig.CACHE_CLOTHING_DIR.resolve(metadata.getFileName()).toString();
-                if (Files.exists(Paths.get(cachedPath))) {
-                    logger.debug("Cache hit for item {}: {}", itemId, cachedPath);
-                    return cachedPath;
+                Path cachedPath = ImageCacheConfig.CACHE_CLOTHING_DIR.resolve(metadata.getFileName());
+                if (Files.exists(cachedPath)) {
+                    String fileUrl = cachedPath.toUri().toString();
+                    logger.debug("Cache hit for item {}: {}", itemId, fileUrl);
+                    return fileUrl;
                 }
             } else {
                 logger.debug("Cache entry expired for {}", urlHash);
@@ -231,8 +232,9 @@ public class ImageCacheManager {
             cacheIndex.add(urlHash, metadata);
             saveMetadataIndex();
 
-            logger.info("Cached image for item {}: {} ({} bytes)", itemId, cachedPath, imageData.length);
-            return cachedPath.toString();
+            String fileUrl = cachedPath.toUri().toString();
+            logger.info("Cached image for item {}: {} ({} bytes)", itemId, fileUrl, imageData.length);
+            return fileUrl;
 
         } catch (Exception e) {
             logger.error("Failed to cache image {}", imageUrl, e);
@@ -281,7 +283,7 @@ public class ImageCacheManager {
         String urlHash = generateUrlHash(imageUrl);
         return cacheIndex.findByUrlHash(urlHash)
                 .filter(m -> !m.isExpired())
-                .map(m -> ImageCacheConfig.CACHE_CLOTHING_DIR.resolve(m.getFileName()).toString());
+                .map(m -> ImageCacheConfig.CACHE_CLOTHING_DIR.resolve(m.getFileName()).toUri().toString());
     }
 
     /**
