@@ -1,11 +1,11 @@
 package com.muse.models;
 
 public enum ClothingCategory {
-    HAT,
+    HATS,
     TOPS,
-    BOTTOM,
-    DRESS,
-    COAT,
+    BOTTOMS,
+    DRESSES,
+    COATS,
     SHOES,
     PURSES 
 }

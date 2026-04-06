@@ -8,6 +8,7 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.muse.config.DatabaseConfig;
+import com.muse.util.ImageCacheManager;
 
 public class MuseApp extends Application {
     private static final Logger logger = LoggerFactory.getLogger(MuseApp.class);
@@ -18,6 +19,10 @@ public class MuseApp extends Application {
     public void start(Stage primaryStage) {
         try {
             logger.info("Starting MUSE Application");
+
+            // Initialize cache at startup
+            ImageCacheManager.getInstance().initializeCache();
+            logger.info("Image cache initialized");
 
             // Load login view as initial screen
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/login.fxml"));
@@ -39,6 +44,7 @@ public class MuseApp extends Application {
     public void stop() {
         try {
             logger.info("Closing MUSE Application");
+            ImageCacheManager.getInstance().shutdown();
             DatabaseConfig.closeDataSource();
         } catch (Exception e) {
             logger.error("Error closing application", e);

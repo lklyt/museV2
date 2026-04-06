@@ -151,7 +151,7 @@
             <!-- ─────────────  CREATE STYLE VIEW  ───────────── -->
             <VBox fx:id="createStyleView" spacing="20.0" visible="false" managed="false">
 
-                <HBox prefHeight="489.0" prefWidth="910.0" spacing="10.0">
+                <HBox prefHeight="800" prefWidth="1200" spacing="10.0">
 
                     <!-- Clothing Category Buttons -->
                     <VBox spacing="10.0" prefWidth="90.0" alignment="TOP_CENTER">
@@ -165,7 +165,7 @@
                     </VBox>
 
                     <!-- Clothing Items in 2-Column Grid -->
-                    <ScrollPane fitToWidth="true" HBox.hgrow="ALWAYS">
+                    <ScrollPane fitToWidth="true" prefWidth="400.0">
                         <GridPane fx:id="clothingItemsGrid" hgap="10.0" vgap="10.0">
                             <columnConstraints>
                                 <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />

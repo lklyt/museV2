@@ -90,7 +90,7 @@ public class DashboardController {
     // ── Create-Style view ─────────────────────────────────────────────────────
     @FXML private ImageView outfitPreview;
     @FXML private Button    postStyleButton;
-    @FXML private HBox      clothingItemsHBox;
+    @FXML private GridPane  clothingItemsGrid;
     // Category buttons
     @FXML private Button hatButton;
     @FXML private Button topButton;
@@ -371,35 +371,42 @@ public class DashboardController {
             logger.info("Category selected: {}", categoryName);
         } catch (Exception ex) {
             logger.error("Error loading clothing items for category: {}", categoryName, ex);
-            clothingItemsHBox.getChildren().clear();
-            clothingItemsHBox.getChildren().add(infoLabel("Could not load items."));
+            clothingItemsGrid.getChildren().clear();
+            Label errorLabel = infoLabel("Could not load items.");
+            GridPane.setColumnSpan(errorLabel, 2);
+            clothingItemsGrid.getChildren().add(errorLabel);
         }
     }
 
     private void loadClothingItems(ClothingCategory category) throws Exception {
-        clothingItemsHBox.getChildren().clear();
+        clothingItemsGrid.getChildren().clear();
 
-        var items = clothingItemService.getItemsByCategory(category);
+        // Use cached image service for better performance
+        var items = clothingItemService.getItemsWithCachedImages(category);
         if (items.isEmpty()) {
-            clothingItemsHBox.getChildren().add(infoLabel("No items in this category."));
+            Label noItemsLabel = infoLabel("No items in this category.");
+            GridPane.setColumnSpan(noItemsLabel, 2);
+            clothingItemsGrid.getChildren().add(noItemsLabel);
             return;
         }
 
+        int row = 0;
+        int col = 0;
         for (var item : items) {
-            Button itemBtn = new Button(item.getDescription());
-            itemBtn.setPrefHeight(60);
-            itemBtn.setPrefWidth(90);
+            Button itemBtn = new Button();
+            itemBtn.setPrefHeight(150);
+            itemBtn.setPrefWidth(150);
             itemBtn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
                            "-fx-border-radius: 10; -fx-padding: 5px; -fx-background-radius: 10px; " +
                            "-fx-font-size: 12px;");
 
-            // Set a tooltip with the image URL if available
+            // Load image from cache or download and cache it
             if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
                 try {
-                    Image img = new Image(item.getImageUrl(), 70, 70, true, true);
+                    Image img = new Image(item.getImageUrl());
                     ImageView imgView = new ImageView(img);
-                    imgView.setFitHeight(50);
-                    imgView.setFitWidth(50);
+                    imgView.setFitHeight(130);
+                    imgView.setFitWidth(130);
                     imgView.setPreserveRatio(true);
                     itemBtn.setGraphic(imgView);
                 } catch (Exception e) {
@@ -407,7 +414,12 @@ public class DashboardController {
                 }
             }
 
-            clothingItemsHBox.getChildren().add(itemBtn);
+            clothingItemsGrid.add(itemBtn, col, row);
+            col++;
+            if (col == 2) {
+                col = 0;
+                row++;
+            }
         }
     }
 
