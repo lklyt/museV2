@@ -544,7 +544,7 @@ public class DashboardController {
                 followersListVBox.getChildren().add(infoLabel("You don't have any followers yet."));
             } else {
                 for (User user : followers) {
-                    followersListVBox.getChildren().add(createFollowUserLabel(user.getUsername()));
+                    followersListVBox.getChildren().add(createFollowUserLabel(user));
                 }
             }
         } catch (Exception ex) {
@@ -572,7 +572,7 @@ public class DashboardController {
                 followingListVBox.getChildren().add(infoLabel("You aren't following anyone yet."));
             } else {
                 for (User user : following) {
-                    followingListVBox.getChildren().add(createFollowUserLabel(user.getUsername()));
+                    followingListVBox.getChildren().add(createFollowUserLabel(user));
                 }
             }
         } catch (Exception ex) {
@@ -591,23 +591,32 @@ public class DashboardController {
         openProfile();
     }
 
-    /** Helper to generate the green-themed username rows for the lists */
-    private Label createFollowUserLabel(String username) {
-        Label label = new Label("@" + username);
+    private Label createFollowUserLabel(User user) {
+        Label label = new Label("@" + user.getUsername());
         label.setMaxWidth(Double.MAX_VALUE);
-        // Base green theme matching your app
-        label.setStyle(
-                "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-        // Optional hover effect for a bit of polish
+        label.setStyle(
+                "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; " +
+                        "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;");
+
+        label.setOnMouseClicked(e -> {
+            logger.info("Opening profile for: {}", user.getUsername());
+            // Close the lists first so the profile view is visible
+            closeFollowLists();
+            // Navigate to the other user's profile
+            openOtherProfile(user.getUserId());
+        });
+
         label.setOnMouseEntered(e -> label.setStyle(
-                "-fx-background-color: #779946; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;"));
+                "-fx-background-color: #779946; -fx-text-fill: white; -fx-padding: 15; " +
+                        "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;"));
+
         label.setOnMouseExited(e -> label.setStyle(
-                "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;"));
+                "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; " +
+                        "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;"));
 
         return label;
     }
-
     // ═════════════════════════════════════════════════════════════════════════
     // Settings
     // ═════════════════════════════════════════════════════════════════════════
@@ -724,7 +733,7 @@ public class DashboardController {
      * @param userId database ID of the user to display
      */
     public void openOtherProfile(int userId) {
-       
+
         currentOtherUserId = userId;
         updateFollowButton();
         otherPostsVBox.getChildren().clear();
@@ -758,7 +767,6 @@ public class DashboardController {
 
         activateView(otherProfileView);
     }
-
 
     @FXML
     private void handleFollowUser() {
