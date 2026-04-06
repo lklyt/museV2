@@ -6,6 +6,7 @@ import com.muse.models.ClothingItem;
 import com.muse.models.Post;
 import com.muse.models.User;
 import com.muse.models.ClothingCategory;
+import com.muse.service.CommentService;
 import com.muse.service.CommunityService;
 import com.muse.service.PostService;
 import com.muse.service.UserService;
@@ -25,9 +26,12 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +72,7 @@ public class DashboardController {
 
     // ── Services ─────────────────────────────────────────────────────────────
     private final PostService postService = new PostService();
+    private final CommentService commentService = new CommentService();
     private final CommunityService communityService = new CommunityService();
     private final UserService userService = new UserService();
     private final ClothingItemService clothingItemService = new ClothingItemService();
@@ -1300,40 +1305,85 @@ public class DashboardController {
 
         card.getChildren().addAll(author, postOutfitPreview);
 
-        if (post.getComments() != null && !post.getComments().isEmpty()) {
-            VBox commentsBox = new VBox(4);
-            commentsBox.setStyle("-fx-background-color: #f4efe8; -fx-padding: 10; -fx-border-radius: 12; -fx-background-radius: 12;");
+        VBox commentsContent = new VBox(4);
+        commentsContent.setStyle("-fx-background-color: #f4efe8; -fx-padding: 10; -fx-border-radius: 12; -fx-background-radius: 12;");
+        refreshCommentsBox(commentsContent, post);
 
-            Label commentsTitle = new Label(post.getComments().size() + " comment" + (post.getComments().size() == 1 ? "" : "s"));
-            commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
-            commentsBox.getChildren().add(commentsTitle);
+        ScrollPane commentsBox = new ScrollPane(commentsContent);
+        commentsBox.setFitToWidth(true);
+        commentsBox.setPrefHeight(180);
+        commentsBox.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
 
-            int maxCommentsToShow = 3;
-            int shown = 0;
-            for (Comment comment : post.getComments()) {
-                if (comment == null) continue;
-                Label commentLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
-                commentLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3f3b36;");
-                commentLabel.setWrapText(true);
-                commentsBox.getChildren().add(commentLabel);
-                shown++;
-                if (shown >= maxCommentsToShow) {
-                    break;
-                }
+        TextField commentInput = new TextField();
+        commentInput.setPromptText("Add a comment...");
+        commentInput.setPrefWidth(220);
+
+        Button commentButton = new Button("Post");
+        commentButton.setStyle("-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 12;");
+        commentButton.setOnAction(e -> {
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
+            if (currentUserId < 0) {
+                showErrorAlert("Not Logged In", "Please log in before adding a comment.");
+                return;
             }
-            if (post.getComments().size() > maxCommentsToShow) {
-                Label moreLabel = new Label("View " + (post.getComments().size() - maxCommentsToShow) + " more comment" + (post.getComments().size() - maxCommentsToShow == 1 ? "" : "s"));
-                moreLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #5c5348;");
-                commentsBox.getChildren().add(moreLabel);
+
+            String commentText = commentInput.getText().trim();
+            if (commentText.isEmpty()) {
+                showErrorAlert("Validation Error", "Comment cannot be empty.");
+                return;
             }
-            card.getChildren().add(commentsBox);
-        } else {
-            Label noCommentsLabel = new Label("No comments yet.");
-            noCommentsLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #6e6a63;");
-            card.getChildren().add(noCommentsLabel);
-        }
+
+            try {
+                commentService.addComment(post.getPostId(), currentUserId, commentText);
+                post.setComments(commentService.getCommentsByPost(post.getPostId()));
+                refreshCommentsBox(commentsContent, post);
+                commentInput.clear();
+            } catch (Exception ex) {
+                logger.error("Error adding comment to post " + post.getPostId(), ex);
+                showErrorAlert("Comment Failed", "Could not add comment: " + ex.getMessage());
+            }
+        });
+
+        HBox commentRow = new HBox(8, commentInput, commentButton);
+        commentRow.setAlignment(Pos.CENTER_LEFT);
+
+        card.getChildren().addAll(commentsBox, commentRow);
 
         return card;
+    }
+
+    private void refreshCommentsBox(VBox commentsBox, Post post) {
+        commentsBox.getChildren().clear();
+        if (post.getComments() == null || post.getComments().isEmpty()) {
+            Label noCommentsLabel = new Label("No comments yet.");
+            noCommentsLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #6e6a63;");
+            commentsBox.getChildren().add(noCommentsLabel);
+            return;
+        }
+
+        Label commentsTitle = new Label(post.getComments().size() + " comment" + (post.getComments().size() == 1 ? "" : "s"));
+        commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
+        commentsBox.getChildren().add(commentsTitle);
+
+        int maxCommentsToShow = 3;
+        int shown = 0;
+        for (Comment comment : post.getComments()) {
+            if (comment == null) continue;
+            Label commentLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
+            commentLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3f3b36;");
+            commentLabel.setWrapText(true);
+            commentsBox.getChildren().add(commentLabel);
+            shown++;
+            if (shown >= maxCommentsToShow) {
+                break;
+            }
+        }
+
+        if (post.getComments().size() > maxCommentsToShow) {
+            Label moreLabel = new Label("View " + (post.getComments().size() - maxCommentsToShow) + " more comment" + ((post.getComments().size() - maxCommentsToShow) == 1 ? "" : "s"));
+            moreLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #5c5348;");
+            commentsBox.getChildren().add(moreLabel);
+        }
     }
 
     private Map<ClothingCategory, ClothingItem> toCategoryMap(List<ClothingItem> items) {
