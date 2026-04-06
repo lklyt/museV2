@@ -1,5 +1,6 @@
 package com.muse.ui.controllers;
 
+import com.muse.models.Comment;
 import com.muse.models.Community;
 import com.muse.models.ClothingItem;
 import com.muse.models.Post;
@@ -1298,6 +1299,40 @@ public class DashboardController {
         }
 
         card.getChildren().addAll(author, postOutfitPreview);
+
+        if (post.getComments() != null && !post.getComments().isEmpty()) {
+            VBox commentsBox = new VBox(4);
+            commentsBox.setStyle("-fx-background-color: #f4efe8; -fx-padding: 10; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+            Label commentsTitle = new Label(post.getComments().size() + " comment" + (post.getComments().size() == 1 ? "" : "s"));
+            commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
+            commentsBox.getChildren().add(commentsTitle);
+
+            int maxCommentsToShow = 3;
+            int shown = 0;
+            for (Comment comment : post.getComments()) {
+                if (comment == null) continue;
+                Label commentLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
+                commentLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3f3b36;");
+                commentLabel.setWrapText(true);
+                commentsBox.getChildren().add(commentLabel);
+                shown++;
+                if (shown >= maxCommentsToShow) {
+                    break;
+                }
+            }
+            if (post.getComments().size() > maxCommentsToShow) {
+                Label moreLabel = new Label("View " + (post.getComments().size() - maxCommentsToShow) + " more comment" + (post.getComments().size() - maxCommentsToShow == 1 ? "" : "s"));
+                moreLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #5c5348;");
+                commentsBox.getChildren().add(moreLabel);
+            }
+            card.getChildren().add(commentsBox);
+        } else {
+            Label noCommentsLabel = new Label("No comments yet.");
+            noCommentsLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #6e6a63;");
+            card.getChildren().add(noCommentsLabel);
+        }
+
         return card;
     }
 

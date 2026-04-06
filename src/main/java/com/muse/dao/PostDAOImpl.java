@@ -2,6 +2,7 @@ package com.muse.dao;
 
 import com.muse.config.DatabaseConfig;
 import com.muse.models.Post;
+import com.muse.models.Comment;
 import com.muse.models.ClothingItem;
 import com.muse.models.ClothingCategory;
 import org.slf4j.Logger;
@@ -82,7 +83,7 @@ public class PostDAOImpl implements PostDAO {
                 while (rs.next()) {
                     posts.add(mapResultSetToPost(rs));
                 }
-            }
+            }  
         }
         return posts;
     }
@@ -156,8 +157,44 @@ public class PostDAOImpl implements PostDAO {
             logger.warn("Failed to load clothing items for post " + rs.getInt("post_id"), e);
             post.setClothingItems(new ArrayList<>());
         }
+
+        // Load comments for this post
+        try {
+            List<Comment> comments = loadCommentsByPostId(rs.getInt("post_id"));
+            post.setComments(comments);
+        } catch (Exception e) {
+            logger.warn("Failed to load comments for post " + rs.getInt("post_id"), e);
+            post.setComments(new ArrayList<>());
+        }
         
         return post;
+    }
+
+    private List<Comment> loadCommentsByPostId(int postId) throws Exception {
+        List<Comment> comments = new ArrayList<>();
+        String sql = "SELECT c.*, u.username FROM comments c " +
+                     "JOIN users u ON c.author_id = u.user_id WHERE c.post_id = ? " +
+                     "ORDER BY c.created_at ASC";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, postId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Comment comment = new Comment();
+                    comment.setCommentId(rs.getInt("comment_id"));
+                    comment.setPostId(rs.getInt("post_id"));
+                    comment.setAuthorId(rs.getInt("author_id"));
+                    comment.setAuthorUsername(rs.getString("username"));
+                    comment.setContent(rs.getString("content"));
+                    comment.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    comment.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    comments.add(comment);
+                }
+            }
+        }
+        return comments;
     }
 
     private List<ClothingItem> loadClothingItemsByPostId(int postId) throws Exception {
