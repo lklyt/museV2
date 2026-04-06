@@ -233,6 +233,7 @@ public class DashboardController {
 
     @FXML
     public void openHome() {
+        currentOtherUserId = -1;
         activateView(homeView);
         setNavActive(homeButton);
         // Re-draw the correct tab
@@ -257,6 +258,7 @@ public class DashboardController {
 
     @FXML
     public void openProfile() {
+        currentOtherUserId = -1;
         activateView(profileView);
         setNavActive(profileButton);
         loadOwnProfile();
@@ -526,22 +528,26 @@ public class DashboardController {
     }
 
     @FXML
-    private void handleShowFollowers() {
-        logger.info("Show Followers clicked");
-        // Hide profile view and show followers view
+    public void showFollowersForUser(int userId) {
+        logger.info("Showing followers for user ID: {}", userId);
+
+        // UI Switching logic (same as before)
         profileView.setVisible(false);
         profileView.setManaged(false);
+        otherProfileView.setVisible(false); // Hide the "Other Profile" if it's open
+        otherProfileView.setManaged(false);
+
         followersListView.setVisible(true);
         followersListView.setManaged(true);
 
         followersListVBox.getChildren().clear();
 
         try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
+            // CRITICAL CHANGE: Use the passed userId, not SessionManager
             List<User> followers = userService.getFollowers(userId);
 
             if (followers.isEmpty()) {
-                followersListVBox.getChildren().add(infoLabel("You don't have any followers yet."));
+                followersListVBox.getChildren().add(infoLabel("No followers yet."));
             } else {
                 for (User user : followers) {
                     followersListVBox.getChildren().add(createFollowUserLabel(user));
@@ -549,46 +555,79 @@ public class DashboardController {
             }
         } catch (Exception ex) {
             logger.error("Error loading followers", ex);
-            followersListVBox.getChildren().add(infoLabel("Could not load followers: " + ex.getMessage()));
+            followersListVBox.getChildren().add(infoLabel("Error: " + ex.getMessage()));
+        }
+    }
+
+    @FXML
+    private void handleShowFollowers() {
+        // If otherProfileView is visible, we are looking at someone else's list
+        if (otherProfileView.isVisible()) {
+            showFollowersForUser(currentOtherUserId);
+        } else {
+            // Otherwise, show our own
+            showFollowersForUser(SessionManager.getInstance().getCurrentUserId());
+        }
+    }
+
+    @FXML
+    public void showFollowingForUser(int userId) {
+        logger.info("Showing 'Following' list for user ID: {}", userId);
+
+        profileView.setVisible(false);
+        profileView.setManaged(false);
+        otherProfileView.setVisible(false);
+        otherProfileView.setManaged(false);
+
+        followingListView.setVisible(true);
+        followingListView.setManaged(true);
+
+        // 2. Clear previous entries
+        followingListVBox.getChildren().clear();
+
+        try {
+            // 3. Fetch the list of users that the target userId follows
+            List<User> following = userService.getFollowing(userId);
+
+            if (following.isEmpty()) {
+                followingListVBox.getChildren().add(infoLabel("Not following anyone yet."));
+            } else {
+                for (User user : following) {
+                    // Use the updated helper that makes the label clickable
+                    followingListVBox.getChildren().add(createFollowUserLabel(user));
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("Error loading following list for user {}", userId, ex);
+            followingListVBox.getChildren().add(infoLabel("Could not load list: " + ex.getMessage()));
         }
     }
 
     @FXML
     private void handleShowFollowing() {
-        logger.info("Show Following clicked");
-        // Hide profile view and show following view
-        profileView.setVisible(false);
-        profileView.setManaged(false);
-        followingListView.setVisible(true);
-        followingListView.setManaged(true);
-
-        followingListVBox.getChildren().clear();
-
-        try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
-            List<User> following = userService.getFollowing(userId);
-
-            if (following.isEmpty()) {
-                followingListVBox.getChildren().add(infoLabel("You aren't following anyone yet."));
-            } else {
-                for (User user : following) {
-                    followingListVBox.getChildren().add(createFollowUserLabel(user));
-                }
-            }
-        } catch (Exception ex) {
-            logger.error("Error loading following list", ex);
-            followingListVBox.getChildren().add(infoLabel("Could not load following list: " + ex.getMessage()));
+        // Check if we are currently looking at someone else's profile
+        if (otherProfileView.isVisible()) {
+            // Show the list for the 'other' user
+            showFollowingForUser(currentOtherUserId);
+        } else {
+            // Show the list for the logged-in user
+            showFollowingForUser(SessionManager.getInstance().getCurrentUserId());
         }
     }
 
-    /** Helper to safely return to the profile view from the lists */
+    /** Helper to safely return to the correct profile view from the lists */
     @FXML
     private void closeFollowLists() {
         followersListView.setVisible(false);
         followersListView.setManaged(false);
         followingListView.setVisible(false);
         followingListView.setManaged(false);
-        openProfile();
+
+        if (currentOtherUserId != -1) {
+            activateView(otherProfileView);
+        } else {
+            openProfile();
+        }
     }
 
     private Label createFollowUserLabel(User user) {

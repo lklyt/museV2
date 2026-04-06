@@ -348,11 +348,13 @@
 
                 <!-- Followers / Following / Follow -->
                 <HBox alignment="CENTER" spacing="50.0">
-                    <Button alignment="CENTER"
+                    <Button onAction="#handleShowFollowers" 
+                            alignment="CENTER"
                             prefHeight="45.0" prefWidth="187.0"
                             style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;"
                             text="Followers" />
-                    <Button alignment="CENTER"
+                    <Button onAction="#handleShowFollowing" 
+                            alignment="CENTER"
                             prefHeight="45.0" prefWidth="187.0"
                             style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 10; -fx-font-size: 16px;"
                             text="Following" />
