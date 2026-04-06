@@ -19,6 +19,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Unified controller for {@code dashboard.fxml}.
@@ -396,11 +398,41 @@ public class DashboardController {
 
     @FXML
     private void handleCreateCommunity() {
-        // TODO: Open a create-community dialog (TextInputDialog or dedicated FXML)
-        logger.info("Create Community clicked");
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                "Community creation coming soon!", ButtonType.OK);
+         // 1. Setup the Input Dialog
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("New Community");
+        dialog.setHeaderText("Create a new MUSE Community");
+        dialog.setContentText("Please enter community name:");
+
+        // 2. Capture the result
+        Optional<String> result = dialog.showAndWait();
+
+        // 3. If the user clicked OK and provided a name
+        result.ifPresent(name -> {
+            try {
+                // Call the service to save to DB
+                communityService.createCommunity(name);
+                
+                logger.info("Successfully created community: {}", name);
+
+                // 4. REFRESH the grid so the new community appears
+                loadCommunities();
+
+            } catch (IllegalArgumentException ex) {
+                // This catches "Name already exists" or "Too short" from your Service
+                showErrorAlert("Validation Error", ex.getMessage());
+            } catch (Exception ex) {
+                logger.error("Error creating community", ex);
+                showErrorAlert("Database Error", "Could not save community: " + ex.getMessage());
+            }
+        });
+    }
+
+    private void showErrorAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
         alert.setHeaderText(null);
+        alert.setContentText(content);
         alert.showAndWait();
     }
 
