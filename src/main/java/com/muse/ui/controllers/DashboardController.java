@@ -19,6 +19,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Unified controller for {@code dashboard.fxml}.
@@ -398,11 +400,41 @@ public class DashboardController {
 
     @FXML
     private void handleCreateCommunity() {
-        // TODO: Open a create-community dialog (TextInputDialog or dedicated FXML)
-        logger.info("Create Community clicked");
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                "Community creation coming soon!", ButtonType.OK);
+         // 1. Setup the Input Dialog
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("New Community");
+        dialog.setHeaderText("Create a new MUSE Community");
+        dialog.setContentText("Please enter community name:");
+
+        // 2. Capture the result
+        Optional<String> result = dialog.showAndWait();
+
+        // 3. If the user clicked OK and provided a name
+        result.ifPresent(name -> {
+            try {
+                // Call the service to save to DB
+                communityService.createCommunity(name);
+                
+                logger.info("Successfully created community: {}", name);
+
+                // 4. REFRESH the grid so the new community appears
+                loadCommunities();
+
+            } catch (IllegalArgumentException ex) {
+                // This catches "Name already exists" or "Too short" from your Service
+                showErrorAlert("Validation Error", ex.getMessage());
+            } catch (Exception ex) {
+                logger.error("Error creating community", ex);
+                showErrorAlert("Database Error", "Could not save community: " + ex.getMessage());
+            }
+        });
+    }
+
+    private void showErrorAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
         alert.setHeaderText(null);
+        alert.setContentText(content);
         alert.showAndWait();
     }
 
@@ -700,10 +732,41 @@ public class DashboardController {
 
     @FXML
     private void handleContactSupport() {
-        // TODO: open support form or launch mailto
         logger.info("Contact Support clicked");
+
+        User current = SessionManager.getInstance().getCurrentUser();
+        String username = (current != null) ? current.getUsername() : "unknown";
+
+        String subject = "MUSE Support Request – @" + username;
+        String body = "Username: @" + username + "\n\nDescribe your issue below:\n";
+
+        try {
+            String mailtoUri = "mailto:muse.supportt@gmail.com"
+                    + "?subject=" + java.net.URLEncoder.encode(subject, "UTF-8").replace("+", "%20")
+                    + "&body="    + java.net.URLEncoder.encode(body,    "UTF-8").replace("+", "%20");
+
+            java.awt.Desktop.getDesktop().mail(new java.net.URI(mailtoUri));
+
+        } catch (UnsupportedOperationException ex) {
+            logger.warn("Desktop mail not supported on this OS", ex);
+            showSupportFallbackDialog(username);
+        } catch (Exception ex) {
+            logger.error("Could not open mail client", ex);
+            showSupportFallbackDialog(username);
+        }
     }
 
+    private void showSupportFallbackDialog(String username) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "", ButtonType.OK);
+        alert.setTitle("Contact Support");
+        alert.setHeaderText("We couldn't open your mail client.");
+        alert.setContentText(
+            "Please email us directly at:\n\n"
+            + "muse.supportt@gmail.com\n\n"
+            + "Include your username (@" + username + ") in your message."
+        );
+        alert.showAndWait();
+    }
     @FXML
     private void handleResetProfile() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
