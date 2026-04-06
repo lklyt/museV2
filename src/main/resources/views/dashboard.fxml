@@ -164,25 +164,28 @@
                         <Button fx:id="shoesButton"  prefHeight="54.0" maxWidth="Infinity" onAction="#selectCategory" text="SHOES"  style="-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;" />
                     </VBox>
 
-                    <VBox spacing="10.0" HBox.hgrow="ALWAYS">
-                        <!-- Outfit Preview -->
-                        <ImageView fx:id="outfitPreview" fitHeight="400.0" fitWidth="600.0"
+                    <!-- Clothing Items in 2-Column Grid -->
+                    <ScrollPane fitToWidth="true" HBox.hgrow="ALWAYS">
+                        <GridPane fx:id="clothingItemsGrid" hgap="10.0" vgap="10.0">
+                            <columnConstraints>
+                                <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+                                <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+                            </columnConstraints>
+                            <children></children>
+                            <padding><Insets left="5.0" right="5.0" top="5.0" bottom="5.0" /></padding>
+                        </GridPane>
+                    </ScrollPane>
+
+                    <!-- Outfit Preview and Post Button -->
+                    <VBox spacing="10.0" prefWidth="250.0">
+                        <ImageView fx:id="outfitPreview" fitHeight="400.0" fitWidth="230.0"
                                    pickOnBounds="true" preserveRatio="true" VBox.vgrow="ALWAYS" />
-
-                        <!-- Clothing Items in Single Line -->
-                        <ScrollPane fitToHeight="true" prefHeight="70.0">
-                            <HBox fx:id="clothingItemsHBox" spacing="10.0" alignment="CENTER_LEFT">
-                                <padding><Insets left="5.0" right="5.0" top="5.0" bottom="5.0" /></padding>
-                            </HBox>
-                        </ScrollPane>
+                        <Button fx:id="postStyleButton"
+                                prefHeight="54.0" maxWidth="Infinity"
+                                onAction="#handlePostStyle"
+                                style="-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;"
+                                text="POST" />
                     </VBox>
-
-                    <!-- Post Button -->
-                    <Button fx:id="postStyleButton"
-                            prefHeight="54.0" prefWidth="135.0"
-                            onAction="#handlePostStyle"
-                            style="-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;"
-                            text="POST" />
                 </HBox>
             </VBox>
 
