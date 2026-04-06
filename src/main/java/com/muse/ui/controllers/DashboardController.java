@@ -289,15 +289,13 @@ public class DashboardController {
     // ═════════════════════════════════════════════════════════════════════════
 
     private void loadCommunities() {
-        // Leave this commented out so it doesn't erase your FXML mock buttons!
-        // communityGrid.getChildren().clear(); 
+        communityGrid.getChildren().clear();
 
         try {
             List<Community> communities = communityService.getAllCommunities();
-            
+
             int col = 0;
-            // CHANGE: Start at row 1 so we don't overwrite the mock buttons in row 0
-            int row = 1; 
+            int row = 0; 
             
             for (Community c : communities) {
                 Button btn = new Button(c.getName());
@@ -319,14 +317,10 @@ public class DashboardController {
                     row++; 
                 }
             }
-            
-            // Note: I removed the "if (communities.isEmpty())" block here because 
-            // you already have your mock communities showing, so the grid is never truly "empty".
 
         } catch (Exception ex) {
             logger.error("Error loading communities", ex);
-            // Notice I changed the row index to 1 here as well
-            communityGrid.add(infoLabel("Could not load communities: " + ex.getMessage()), 0, 1, 3, 1);
+            communityGrid.add(infoLabel("Could not load communities: " + ex.getMessage()), 0, 0, 3, 1);
         }
     }
     @FXML

@@ -132,15 +132,6 @@
                                     <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0" />
                                 </columnConstraints>
                                 <children>
-                                    <Button onAction="#handleCommunityClick" prefHeight="75.0" maxWidth="Infinity" style="-fx-background-color: #cfc6c2; -fx-border-color: #745a42; -fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px;" text="Streetwear" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                                        <font><Font size="19.0" /></font>
-                                    </Button>
-                                    <Button onAction="#handleCommunityClick" prefHeight="75.0" maxWidth="Infinity" style="-fx-background-color: #cfc6c2; -fx-border-color: #745a42; -fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px;" text="Y2K Aesthetic" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                                        <font><Font size="19.0" /></font>
-                                    </Button>
-                                    <Button onAction="#handleCommunityClick" prefHeight="75.0" maxWidth="Infinity" style="-fx-background-color: #cfc6c2; -fx-border-color: #745a42; -fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px;" text="Minimalist" GridPane.columnIndex="2" GridPane.rowIndex="0">
-                                        <font><Font size="19.0" /></font>
-                                    </Button>
                                 </children>
                             </GridPane>
                         </AnchorPane>
