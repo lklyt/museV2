@@ -439,7 +439,7 @@ public class DashboardController {
 
     @FXML
     private void handleCreateCommunity() {
-         // 1. Setup the Input Dialog
+        // 1. Setup the Input Dialog
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("New Community");
         dialog.setHeaderText("Create a new MUSE Community");
@@ -453,7 +453,7 @@ public class DashboardController {
             try {
                 // Call the service to save to DB
                 communityService.createCommunity(name);
-                
+
                 logger.info("Successfully created community: {}", name);
 
                 // 4. REFRESH the grid so the new community appears
@@ -518,7 +518,8 @@ public class DashboardController {
     }
 
     private void highlightCategorySelection(Button selected) {
-        for (Button button : new Button[] { hatButton, topButton, dressButton, coatButton, purseButton, bottomButton, shoesButton }) {
+        for (Button button : new Button[] { hatButton, topButton, dressButton, coatButton, purseButton, bottomButton,
+                shoesButton }) {
             button.setStyle(button == selected ? CATEGORY_ACTIVE : CATEGORY_INACTIVE);
         }
     }
@@ -604,8 +605,18 @@ public class DashboardController {
     }
 
     private void handleOutfitItemSelection(ClothingCategory category, ClothingItem item) {
-        selectedOutfitItems.put(category, item);
-        enforceOutfitCombinationRules(category);
+        ClothingItem currentlySelected = selectedOutfitItems.get(category);
+
+        if (currentlySelected != null && isSameClothingItem(currentlySelected, item)) {
+            // TOGGLE OFF: Unselect if it's the same item
+            selectedOutfitItems.remove(category);
+            logger.info("Unselected item from category: {}", category);
+        } else {
+            // TOGGLE ON: Select the new item
+            selectedOutfitItems.put(category, item);
+            enforceOutfitCombinationRules(category);
+            logger.info("Selected item for category: {}", category);
+        }
         renderCurrentOutfitPreview();
 
         try {
@@ -664,7 +675,8 @@ public class DashboardController {
         }
     }
 
-    private ImageView createPreviewImageView(ClothingItem item, ClothingCategory category, double paneWidth, double paneHeight) {
+    private ImageView createPreviewImageView(ClothingItem item, ClothingCategory category, double paneWidth,
+            double paneHeight) {
         PreviewSlot slot = previewSlotFor(category);
         if (slot == null) {
             return null;
@@ -1036,7 +1048,7 @@ public class DashboardController {
         try {
             String mailtoUri = "mailto:muse.supportt@gmail.com"
                     + "?subject=" + java.net.URLEncoder.encode(subject, "UTF-8").replace("+", "%20")
-                    + "&body="    + java.net.URLEncoder.encode(body,    "UTF-8").replace("+", "%20");
+                    + "&body=" + java.net.URLEncoder.encode(body, "UTF-8").replace("+", "%20");
 
             java.awt.Desktop.getDesktop().mail(new java.net.URI(mailtoUri));
 
@@ -1054,12 +1066,12 @@ public class DashboardController {
         alert.setTitle("Contact Support");
         alert.setHeaderText("We couldn't open your mail client.");
         alert.setContentText(
-            "Please email us directly at:\n\n"
-            + "muse.supportt@gmail.com\n\n"
-            + "Include your username (@" + username + ") in your message."
-        );
+                "Please email us directly at:\n\n"
+                        + "muse.supportt@gmail.com\n\n"
+                        + "Include your username (@" + username + ") in your message.");
         alert.showAndWait();
     }
+
     @FXML
     private void handleResetProfile() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
@@ -1286,7 +1298,8 @@ public class DashboardController {
         AnchorPane postOutfitPreview = new AnchorPane();
         postOutfitPreview.setPrefWidth(220);
         postOutfitPreview.setPrefHeight(340);
-        postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; -fx-border-width: 1; -fx-border-radius: 12; -fx-background-radius: 12;");
+        postOutfitPreview.setStyle(
+                "-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; -fx-border-width: 1; -fx-border-radius: 12; -fx-background-radius: 12;");
 
         renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
         if (postOutfitPreview.getChildren().isEmpty()) {
