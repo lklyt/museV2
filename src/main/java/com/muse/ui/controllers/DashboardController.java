@@ -1,18 +1,24 @@
 package com.muse.ui.controllers;
 
+import com.muse.dao.CommunityDAOImpl;
+import com.muse.dao.PostDAOImpl;
+import com.muse.dao.UserDAOImpl;
 import com.muse.models.Comment;
 import com.muse.models.Community;
 import com.muse.models.ClothingItem;
-import com.muse.models.Post;
-import com.muse.models.User;
 import com.muse.models.ClothingCategory;
+import com.muse.models.Post;
+import com.muse.models.SearchResult;
+import com.muse.models.SearchType;
+import com.muse.models.User;
 import com.muse.service.CommentService;
 import com.muse.service.CommunityService;
 import com.muse.service.PostService;
+import com.muse.service.SearchService;
 import com.muse.service.UserService;
 import com.muse.service.ClothingItemService;
-import com.muse.util.SessionManager;
 import com.muse.util.ImageCacheManager;
+import com.muse.util.SessionManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -79,6 +85,19 @@ public class DashboardController {
     private final CommunityService communityService = new CommunityService();
     private final UserService userService = new UserService();
     private final ClothingItemService clothingItemService = new ClothingItemService();
+
+    /**
+     * Shared search service — used for both the global sidebar search and
+     * real-time filtering in the Create Style clothing grid.
+     */
+    private SearchService searchService;
+
+    // ── Create Style search state ─────────────────────────────────────────────
+    /**
+     * Full clothing item list, loaded once on initialize so that search and
+     * category filtering can work together without repeated DAO calls.
+     */
+    private ArrayList<ClothingItem> allClothingItems = new ArrayList<>();
 
     // ── Sidebar ───────────────────────────────────────────────────────────────
     @FXML
@@ -259,6 +278,32 @@ public class DashboardController {
         discoverButton.setOnAction(e -> openDiscover());
         luckyButton.setOnAction(e -> openLucky());
 
+        // Build the shared SearchService and pre-load all clothing items into it.
+        // Loading once here means every keystroke in Create Style doesn't hit the DB.
+        searchService = new SearchService(
+                new UserDAOImpl(),
+                new CommunityDAOImpl(),
+                new PostDAOImpl()
+        );
+        try {
+            for (ClothingCategory cat : ClothingCategory.values()) {
+                allClothingItems.addAll(clothingItemService.getItemsWithCachedImages(cat));
+            }
+            searchService.setClothingItems(allClothingItems);
+        } catch (Exception ex) {
+            logger.warn("Could not pre-load clothing items for search", ex);
+        }
+
+        // Real-time listener on the shared search field.
+        // When Create Style is the active view, every keystroke filters the
+        // clothing grid (category + text combined). In all other views the field
+        // is left alone — pressing Enter triggers handleSearch() instead.
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (createStyleView.isVisible()) {
+                filterClothingGrid(newVal);
+            }
+        });
+
         initializeCreateStyleComposer();
 
         // Load the default view
@@ -295,15 +340,9 @@ public class DashboardController {
         highlightCategorySelection(buttonForCategory(selectedCreateStyleCategory));
         renderCurrentOutfitPreview();
 
-        try {
-            loadClothingItems(selectedCreateStyleCategory);
-        } catch (Exception ex) {
-            logger.error("Error refreshing create-style items", ex);
-            clothingItemsGrid.getChildren().clear();
-            Label errorLabel = infoLabel("Could not load items.");
-            GridPane.setColumnSpan(errorLabel, 2);
-            clothingItemsGrid.getChildren().add(errorLabel);
-        }
+        // Apply current search text + category so the grid is always in sync
+        // with whatever the user has already typed in the search field.
+        filterClothingGrid(searchField.getText());
     }
 
     @FXML
@@ -405,7 +444,7 @@ public class DashboardController {
             if (posts.isEmpty()) {
                 feedVBox.getChildren().add(infoLabel("Nothing to discover yet."));
             } else {
-                java.util.Collections.shuffle(posts); // simple "discover" shuffle
+                java.util.Collections.shuffle(posts);
                 for (Post post : posts) {
                     postService.loadSaveStatus(post, currentUserId);
                     postService.loadRatingData(post, currentUserId);
@@ -420,16 +459,23 @@ public class DashboardController {
         }
     }
 
+    /**
+     * Fires off a background thread that refreshes rating data for each post,
+     * then updates the UI labels on the JavaFX Application Thread.
+     */
     private void loadPostRatingsAsync(List<Post> posts, int userId) {
-        new Thread(() -> {
+        Thread ratingThread = new Thread(() -> {
             for (Post post : posts) {
                 try {
                     postService.loadRatingData(post, userId);
-                } catch (Exception e) {
-                    logger.warn("Failed to load rating for post {}", post.getPostId(), e);
+                } catch (Exception ex) {
+                    logger.warn("Could not load rating for post {}", post.getPostId(), ex);
                 }
             }
-        }).start();
+            Platform.runLater(() -> logger.debug("Ratings refreshed for {} posts", posts.size()));
+        });
+        ratingThread.setDaemon(true);
+        ratingThread.start();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -438,34 +484,24 @@ public class DashboardController {
 
     private void loadCommunities() {
         communityGrid.getChildren().clear();
-
         try {
             List<Community> communities = communityService.getAllCommunities();
-
-            int col = 0;
-            int row = 0;
-
+            int col = 0, row = 0;
             for (Community c : communities) {
                 Button btn = new Button(c.getName());
                 btn.setPrefHeight(75);
                 btn.setMaxWidth(Double.MAX_VALUE);
                 btn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
-                        "-fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px; " +
-                        "-fx-font-size: 19px;");
-
-                final int communityId = c.getCommunityId();
-                final String communityName = c.getName();
-                btn.setOnAction(e -> openCommunityDetail(communityId, communityName));
-
+                        "-fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px; -fx-font-size: 19px;");
+                final int id = c.getCommunityId();
+                final String name = c.getName();
+                btn.setOnAction(e -> openCommunityDetail(id, name));
                 communityGrid.add(btn, col, row);
-
-                col++;
-                if (col == 3) {
+                if (++col == 3) {
                     col = 0;
                     row++;
                 }
             }
-
         } catch (Exception ex) {
             logger.error("Error loading communities", ex);
             communityGrid.add(infoLabel("Could not load communities: " + ex.getMessage()), 0, 0, 3, 1);
@@ -473,38 +509,17 @@ public class DashboardController {
     }
 
     @FXML
-    private void handleCommunityClick(javafx.event.ActionEvent event) {
-        Button clickedButton = (Button) event.getSource();
-        String communityName = clickedButton.getText();
-
-        // 2. Pass a dummy ID (-1) and the name to your official method!
-        openCommunityDetail(-1, communityName);
-    }
-
-    @FXML
     private void handleCreateCommunity() {
-        // 1. Setup the Input Dialog
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("New Community");
         dialog.setHeaderText("Create a new MUSE Community");
         dialog.setContentText("Please enter community name:");
-
-        // 2. Capture the result
-        Optional<String> result = dialog.showAndWait();
-
-        // 3. If the user clicked OK and provided a name
-        result.ifPresent(name -> {
+        dialog.showAndWait().ifPresent(name -> {
             try {
-                // Call the service to save to DB
                 communityService.createCommunity(name);
-
                 logger.info("Successfully created community: {}", name);
-
-                // 4. REFRESH the grid so the new community appears
                 loadCommunities();
-
             } catch (IllegalArgumentException ex) {
-                // This catches "Name already exists" or "Too short" from your Service
                 showErrorAlert("Validation Error", ex.getMessage());
             } catch (Exception ex) {
                 logger.error("Error creating community", ex);
@@ -540,6 +555,12 @@ public class DashboardController {
         }
     }
 
+    /**
+     * Called by each category button (wired via onAction in FXML).
+     *
+     * Clicking a category selects it and immediately re-applies the current
+     * search text so both filters always work together.
+     */
     @FXML
     private void selectCategory(javafx.event.ActionEvent event) {
         Button clicked = (Button) event.getSource();
@@ -550,7 +571,9 @@ public class DashboardController {
 
             selectedCreateStyleCategory = category;
             highlightCategorySelection(clicked);
-            loadClothingItems(category);
+
+            // Re-filter with the new category + whatever is currently in the search field
+            filterClothingGrid(searchField.getText());
             logger.info("Category selected: {}", categoryName);
         } catch (Exception ex) {
             logger.error("Error loading clothing items for selected category", ex);
@@ -580,6 +603,103 @@ public class DashboardController {
         };
     }
 
+    /**
+     * Core filtering method for the Create Style clothing grid.
+     *
+     * Combines the active category filter ({@link #selectedCreateStyleCategory})
+     * and the search query, delegating scoring to
+     * {@link SearchService#filterClothing}. Both filters are applied
+     * simultaneously:
+     * <ul>
+     * <li>Category only → shows all items in that category, unranked.</li>
+     * <li>Search text only → scores all items against the query, all
+     * categories.</li>
+     * <li>Both → scores items in the selected category against the query.</li>
+     * <li>Neither → shows all items in the default category (entry state).</li>
+     * </ul>
+     *
+     * @param query current text in the sidebar search field (null or blank = no
+     *              text filter)
+     */
+    private void filterClothingGrid(String query) {
+        clothingItemsGrid.getChildren().clear();
+
+        ArrayList<ClothingItem> filtered = searchService.filterClothing(query, selectedCreateStyleCategory);
+
+        if (filtered.isEmpty()) {
+            String message = (query != null && !query.trim().isEmpty())
+                    ? "No items match \"" + query.trim() + "\"."
+                    : "No items in this category.";
+            Label empty = infoLabel(message);
+            GridPane.setColumnSpan(empty, 2);
+            clothingItemsGrid.getChildren().add(empty);
+            return;
+        }
+
+        int row = 0;
+        int col = 0;
+        for (ClothingItem item : filtered) {
+            Button itemBtn = new Button();
+            itemBtn.setPrefHeight(150);
+            itemBtn.setPrefWidth(150);
+            itemBtn.setWrapText(true);
+            itemBtn.setStyle(isCurrentCategorySelection(selectedCreateStyleCategory, item)
+                    ? ITEM_BUTTON_SELECTED
+                    : ITEM_BUTTON_BASE);
+            itemBtn.setOnAction(e -> handleOutfitItemSelection(selectedCreateStyleCategory, item));
+
+            if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+                try {
+                    Optional<String> cachedUrl = ImageCacheManager.getInstance().getCachedImagePath(item.getImageUrl());
+                    if (cachedUrl.isPresent()) {
+                        Image img = new Image(cachedUrl.get());
+                        ImageView imgView = new ImageView(img);
+                        imgView.setFitHeight(130);
+                        imgView.setFitWidth(130);
+                        imgView.setPreserveRatio(true);
+                        itemBtn.setGraphic(imgView);
+                    } else {
+                        itemBtn.setText(item.getDescription());
+                        ImageCacheManager.getInstance().cacheImageAsync(item.getId(), item.getImageUrl(),
+                                selectedCreateStyleCategory,
+                                cachedUrl2 -> {
+                                    javafx.application.Platform.runLater(() -> {
+                                        try {
+                                            Image img = new Image(cachedUrl2);
+                                            ImageView imgView = new ImageView(img);
+                                            imgView.setFitHeight(130);
+                                            imgView.setFitWidth(130);
+                                            imgView.setPreserveRatio(true);
+                                            itemBtn.setGraphic(imgView);
+                                        } catch (Exception e) {
+                                            logger.warn("Failed to display cached image", e);
+                                        }
+                                    });
+                                },
+                                error -> logger.warn("Failed to cache item image: {}", item.getId()));
+                    }
+                } catch (Exception e) {
+                    logger.warn("Could not load image for item: {}", item.getDescription());
+                    itemBtn.setText(item.getDescription());
+                }
+            } else {
+                itemBtn.setText(item.getDescription());
+            }
+
+            clothingItemsGrid.add(itemBtn, col, row);
+            col++;
+            if (col == 2) {
+                col = 0;
+                row++;
+            }
+        }
+    }
+
+    /**
+     * Loads all clothing items for the given category directly from the service,
+     * bypassing the search filter. Used during initialization and after
+     * outfit-item selection when no search text is active.
+     */
     private void loadClothingItems(ClothingCategory category) throws Exception {
         clothingItemsGrid.getChildren().clear();
 
@@ -687,11 +807,8 @@ public class DashboardController {
         }
         renderCurrentOutfitPreview();
 
-        try {
-            loadClothingItems(selectedCreateStyleCategory);
-        } catch (Exception ex) {
-            logger.error("Could not refresh selected clothing state", ex);
-        }
+        // Refresh selection highlights — respect any active search text
+        filterClothingGrid(searchField.getText());
     }
 
     private void enforceOutfitCombinationRules(ClothingCategory changedCategory) {
@@ -1098,6 +1215,7 @@ public class DashboardController {
 
         return label;
     }
+
     // ═════════════════════════════════════════════════════════════════════════
     // Settings
     // ═════════════════════════════════════════════════════════════════════════
@@ -1239,6 +1357,7 @@ public class DashboardController {
         // and updating the green highlight on the sidebar button.
         openCreateStyle();
     }
+
     // ═════════════════════════════════════════════════════════════════════════
     // Other-User Profile
     // ═════════════════════════════════════════════════════════════════════════
@@ -1336,13 +1455,72 @@ public class DashboardController {
     // Search
     // ═════════════════════════════════════════════════════════════════════════
 
+    /**
+     * Triggered when the user confirms a search (Enter / search button).
+     *
+     * In Create Style the real-time listener already handles filtering on every
+     * keystroke, so pressing Enter there is a no-op. In all other views this
+     * method runs a cross-entity search and shows results in the home feed.
+     */
     @FXML
     private void handleSearch() {
+        if (createStyleView.isVisible()) return; // handled by the real-time listener
+
         String query = searchField.getText().trim();
-        if (query.isEmpty())
-            return;
-        // TODO: implement search across posts, communities, users
-        logger.info("Search query: {}", query);
+        if (query.isEmpty()) return;
+
+        logger.info("Global search query: {}", query);
+
+        SearchResult people      = searchService.searchAll(query, SearchType.PEOPLE);
+        SearchResult communities = searchService.searchAll(query, SearchType.COMMUNITIES);
+        SearchResult posts       = searchService.searchAll(query, SearchType.POSTS);
+
+        feedVBox.getChildren().clear();
+        feedVBox.getChildren().add(infoLabel("Search results for: \"" + query + "\""));
+        boolean anyResults = false;
+
+        if (!people.getUsers().isEmpty()) {
+            anyResults = true;
+            feedVBox.getChildren().add(sectionHeader("People"));
+            for (User u : people.getUsers()) {
+                Label lbl = new Label(u.getUsername());
+                lbl.setStyle("-fx-font-size: 14px; -fx-padding: 8; " +
+                        "-fx-background-color: #C0B7AD; -fx-background-radius: 10; -fx-cursor: hand;");
+                lbl.setMaxWidth(Double.MAX_VALUE);
+                lbl.setOnMouseClicked(e -> openOtherProfile(u.getUserId()));
+                feedVBox.getChildren().add(lbl);
+            }
+        }
+
+        if (!communities.getCommunities().isEmpty()) {
+            anyResults = true;
+            feedVBox.getChildren().add(sectionHeader("Communities"));
+            for (Community c : communities.getCommunities()) {
+                Button btn = new Button(c.getName());
+                btn.setMaxWidth(Double.MAX_VALUE);
+                btn.setPrefHeight(60);
+                btn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
+                        "-fx-border-radius: 15; -fx-background-radius: 15; -fx-font-size: 16px;");
+                btn.setOnAction(e -> openCommunityDetail(c.getCommunityId(), c.getName()));
+                feedVBox.getChildren().add(btn);
+            }
+        }
+
+        if (!posts.getPosts().isEmpty()) {
+            anyResults = true;
+            feedVBox.getChildren().add(sectionHeader("Posts"));
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
+            for (Post p : posts.getPosts()) {
+                postService.loadSaveStatus(p, currentUserId);
+                postService.loadRatingData(p, currentUserId);
+                feedVBox.getChildren().add(buildPostCard(p));
+            }
+        }
+
+        if (!anyResults) feedVBox.getChildren().add(infoLabel("No results found for \"" + query + "\"."));
+
+        activateView(homeView);
+        setNavActive(homeButton);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -1391,12 +1569,8 @@ public class DashboardController {
     }
 
     /**
-     * Builds a simple post card {@link Node} from a {@link Post}.
-     *
-     * <p>
-     * Replace with an FXMLLoader call loading {@code post.fxml} once the
-     * Post component controller (PostController) is wired up; for now this
-     * returns a styled VBox placeholder.
+     * Builds a rich post card {@link Node} from a {@link Post}, including the
+     * outfit preview, star ratings, bookmark, and a scrollable comment thread.
      */
     private Node buildPostCard(Post post) {
         // Get current user ID once at the start
@@ -1426,6 +1600,7 @@ public class DashboardController {
         logger.info("Post {} has {} clothing items", post.getPostId(),
                    post.getClothingItems() != null ? post.getClothingItems().size() : 0);
         renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
+
         // --- ADD THE AVERAGE RATING (TOP RIGHT) ---
         Label avgLabel = new Label(String.format("%.1f ★", post.getAverageRating()));
         avgLabel.setStyle("-fx-background-color: rgba(255,255,255,0.8); -fx-padding: 2 8; " +
@@ -1454,7 +1629,7 @@ public class DashboardController {
 
         leftSection.getChildren().addAll(author, postOutfitPreview);
 
-        // ── BOOKMARK BUTTON ────────────────────────────────────────────
+        // ── BOOKMARK BUTTON ────────────────────────────────────────
         Button saveButton = new Button(post.isSavedByCurrentUser() ? "Saved" : "Save");
         saveButton.setStyle("-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 16;");
         saveButton.setMaxWidth(Double.MAX_VALUE);
@@ -1551,10 +1726,11 @@ public class DashboardController {
             commentsBox.getChildren().add(moreLabel);
         }
     }
+
     private HBox createStarRatingBox(Post post, int userId, Label avgLabel) {
         HBox box = new HBox(2);
         box.setStyle("-fx-background-color: rgba(255,255,255,0.6); -fx-background-radius: 10; -fx-padding: 3 6;");
-        
+
         for (int i = 1; i <= 5; i++) {
             Label star = new Label("★");
             star.setStyle("-fx-font-size: 20px; -fx-cursor: hand;");
@@ -1567,14 +1743,14 @@ public class DashboardController {
                 try {
                     // 1. Update database and get new average
                     double newAvg = postService.ratePost(post.getPostId(), userId, ratingValue);
-                    
+
                     // 2. Update local post object
                     post.setUserRating(ratingValue);
                     post.setAverageRating(newAvg);
 
                     // 3. Update UI Label
                     avgLabel.setText(String.format("%.1f ★", newAvg));
-                    
+
                     // 4. Update Star colors in the box
                     for (int j = 0; j < 5; j++) {
                         Label s = (Label) box.getChildren().get(j);

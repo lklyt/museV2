@@ -1,9 +1,10 @@
 package com.muse.models;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-public class User {
+public class User implements Searchable {
     private int userId;
     private String username;
     private String email;
@@ -45,4 +46,16 @@ public class User {
 
     public List<User> getFollowers() { return followers; }
     public void setFollowers(List<User> followers) { this.followers = followers; }
+
+    @Override
+    public ArrayList<String> getSearchKeywords() {
+        ArrayList<String> keywords = new ArrayList<>();
+        if (username != null) keywords.add(username); // index 0 – primary
+        return keywords;
+    }
+
+    @Override
+    public SearchType getSearchType() {
+        return SearchType.PEOPLE;
+    }
 }
