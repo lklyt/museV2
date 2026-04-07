@@ -361,11 +361,13 @@ public class DashboardController {
     private void loadForYouFeed() {
         feedVBox.getChildren().clear();
         try {
+            int userId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getAllPosts();
             if (posts.isEmpty()) {
                 feedVBox.getChildren().add(infoLabel("No posts yet – be the first to share a style!"));
             } else {
                 for (Post post : posts) {
+                    postService.loadRatingData(post, userId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
             }
@@ -378,6 +380,7 @@ public class DashboardController {
     private void loadDiscoverFeed() {
         feedVBox.getChildren().clear();
         try {
+            int userId = SessionManager.getInstance().getCurrentUserId();
             // Discover shows all posts sorted differently; reuse getAllPosts for now.
             // Replace with postService.getDiscoverPosts() when that method exists.
             List<Post> posts = postService.getAllPosts();
@@ -386,6 +389,7 @@ public class DashboardController {
             } else {
                 java.util.Collections.shuffle(posts); // simple "discover" shuffle
                 for (Post post : posts) {
+                    postService.loadRatingData(post, userId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
             }
@@ -857,6 +861,7 @@ public class DashboardController {
                 myPostsVBox.getChildren().add(infoLabel("No posts yet."));
             } else {
                 for (Post p : posts) {
+                    postService.loadRatingData(p, userId);
                     myPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
@@ -1110,11 +1115,13 @@ public class DashboardController {
         communityPostsVBox.getChildren().clear();
 
         try {
+            int userId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getPostsByCommunity(communityId);
             if (posts.isEmpty()) {
                 communityPostsVBox.getChildren().add(infoLabel("No posts in this community yet."));
             } else {
                 for (Post p : posts) {
+                    postService.loadRatingData(p, userId);
                     communityPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
@@ -1154,6 +1161,7 @@ public class DashboardController {
         otherPostsVBox.getChildren().add(sectionHeader("Posts"));
 
         try {
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             var userOpt = userService.getUserById(userId);
             if (userOpt.isPresent()) {
                 otherUsernameLabel.setText(userOpt.get().getUsername());
@@ -1166,6 +1174,7 @@ public class DashboardController {
                 otherPostsVBox.getChildren().add(infoLabel("No posts yet."));
             } else {
                 for (Post p : posts) {
+                    postService.loadRatingData(p, currentUserId);
                     otherPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
