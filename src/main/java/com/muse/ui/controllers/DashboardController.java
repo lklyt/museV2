@@ -1324,7 +1324,7 @@ public class DashboardController {
         AnchorPane.setRightAnchor(avgLabel, 0.0);
 
         // --- ADD THE INTERACTIVE STARS (BOTTOM RIGHT) ---
-        HBox starBox = createStarRatingBox(post, currentUserId, avgLabel);
+        HBox starBox = createStarRatingBox(post, SessionManager.getInstance().getCurrentUserId(), avgLabel);
         
         // Anchor to bottom-right corner
         AnchorPane.setBottomAnchor(starBox, 10.0);
@@ -1439,7 +1439,7 @@ public class DashboardController {
         for (int i = 1; i <= 5; i++) {
             Label star = new Label("★");
             star.setStyle("-fx-font-size: 20px; -fx-cursor: hand;");
-            
+
             // Initial color: Gold if rated, Gray if not
             star.setTextFill(i <= post.getUserRating() ? javafx.scene.paint.Color.web("#FFD700") : javafx.scene.paint.Color.web("#BDC3C7"));
 

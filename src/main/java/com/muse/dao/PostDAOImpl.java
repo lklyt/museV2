@@ -148,7 +148,7 @@ public class PostDAOImpl implements PostDAO {
         post.setCommunityId(rs.getInt("community_id"));
         post.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         post.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
-        
+
         // Load clothing items for this post
         try {
             List<ClothingItem> clothingItems = loadClothingItemsByPostId(rs.getInt("post_id"));
@@ -166,7 +166,16 @@ public class PostDAOImpl implements PostDAO {
             logger.warn("Failed to load comments for post " + rs.getInt("post_id"), e);
             post.setComments(new ArrayList<>());
         }
-        
+
+        // Load average rating for this post
+        try {
+            double avgRating = getAverageRating(rs.getInt("post_id"));
+            post.setAverageRating(avgRating);
+        } catch (Exception e) {
+            logger.warn("Failed to load average rating for post " + rs.getInt("post_id"), e);
+            post.setAverageRating(0.0);
+        }
+
         return post;
     }
 
