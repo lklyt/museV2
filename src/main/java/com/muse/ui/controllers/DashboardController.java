@@ -343,16 +343,29 @@ public class DashboardController {
 
     @FXML
     public void openLucky() {
-        // Pick a random post / community and navigate to it
+        isForYouActive = false;
+        forYouButton.setStyle(TAB_INACTIVE);
+        discoverButton.setStyle(TAB_ACTIVE);
+        loadLuckyPost();
+    }
+
+    private void loadLuckyPost() {
+        feedVBox.getChildren().clear();
         try {
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getAllPosts();
-            if (!posts.isEmpty()) {
-                int idx = (int) (Math.random() * posts.size());
-                Post p = posts.get(idx);
-                openOtherProfile(p.getAuthorId());
+            if (posts.isEmpty()) {
+                feedVBox.getChildren().add(infoLabel("No posts available."));
+            } else {
+                int randomIdx = (int) (Math.random() * posts.size());
+                Post randomPost = posts.get(randomIdx);
+                postService.loadSaveStatus(randomPost, currentUserId);
+                postService.loadRatingData(randomPost, currentUserId);
+                feedVBox.getChildren().add(buildPostCard(randomPost));
             }
         } catch (Exception ex) {
-            logger.warn("Lucky button failed", ex);
+            logger.error("Error loading lucky post", ex);
+            feedVBox.getChildren().add(infoLabel("Could not load post: " + ex.getMessage()));
         }
     }
 
