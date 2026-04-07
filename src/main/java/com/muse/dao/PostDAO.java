@@ -14,6 +14,7 @@ public interface PostDAO {
     void ratePost(int postId, int userId, int rating) throws Exception;
     double getAverageRating(int postId) throws Exception;
     int getUserRating(int postId, int userId) throws Exception;
+    int getRatingCount(int postId) throws Exception;
     void savePost(int postId, int userId) throws Exception;
     void unsavePost(int postId, int userId) throws Exception;
     boolean isSaved(int postId, int userId) throws Exception;

@@ -312,6 +312,21 @@ public class PostDAOImpl implements PostDAO {
     }
 
     @Override
+    public int getRatingCount(int postId) throws Exception {
+        String sql = "SELECT COUNT(*) FROM post_stars WHERE post_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    @Override
     public int getUserRating(int postId, int userId) throws Exception {
         String sql = "SELECT rating FROM post_stars WHERE post_id = ? AND user_id = ?";
         try (Connection conn = DatabaseConfig.getConnection();
