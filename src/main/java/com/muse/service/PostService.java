@@ -75,7 +75,49 @@ public class PostService {
     public double getAverageRating(int postId) throws Exception {
         return postDAO.getAverageRating(postId);
     }
-    
 
-    
+    // --- SAVED POSTS METHODS ---
+
+    /**
+     * Updates a post object with whether the current user has saved it.
+     * This follows the same pattern as loadRatingData for the rating system.
+     */
+    public void loadSaveStatus(Post post, int userId) {
+        try {
+            post.setSavedByCurrentUser(postDAO.isSaved(post.getPostId(), userId));
+        } catch (Exception e) {
+            System.err.println("Error loading save status for post " + post.getPostId() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Saves a post for the current user.
+     */
+    public void savePost(int postId, int userId) throws Exception {
+        postDAO.savePost(postId, userId);
+    }
+
+    /**
+     * Removes a saved post for the current user.
+     */
+    public void unsavePost(int postId, int userId) throws Exception {
+        postDAO.unsavePost(postId, userId);
+    }
+
+    /**
+     * Checks if a post is saved by the current user.
+     */
+    public boolean isSaved(int postId, int userId) throws Exception {
+        return postDAO.isSaved(postId, userId);
+    }
+
+    /**
+     * Gets all posts saved by the current user.
+     */
+    public List<Post> getSavedPosts(int userId) throws Exception {
+        return postDAO.getSavedPostsByUserId(userId);
+    }
+
+
+
 }

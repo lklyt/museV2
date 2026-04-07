@@ -326,4 +326,68 @@ public class PostDAOImpl implements PostDAO {
         }
         return 0; // Return 0 if the user hasn't rated this post yet
     }
+
+    @Override
+    public void savePost(int postId, int userId) throws Exception {
+        String sql = "INSERT INTO saved_posts (post_id, user_id) VALUES (?, ?) " +
+                    "ON DUPLICATE KEY UPDATE created_at = created_at";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+            logger.info("Post " + postId + " saved by user " + userId);
+        }
+    }
+
+    @Override
+    public void unsavePost(int postId, int userId) throws Exception {
+        String sql = "DELETE FROM saved_posts WHERE post_id = ? AND user_id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+            logger.info("Post " + postId + " unsaved by user " + userId);
+        }
+    }
+
+    @Override
+    public boolean isSaved(int postId, int userId) throws Exception {
+        String sql = "SELECT COUNT(*) FROM saved_posts WHERE post_id = ? AND user_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            stmt.setInt(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public List<Post> getSavedPostsByUserId(int userId) throws Exception {
+        List<Post> posts = new ArrayList<>();
+        String sql = "SELECT p.*, u.username FROM posts p " +
+                     "JOIN users u ON p.author_id = u.user_id " +
+                     "JOIN saved_posts sp ON p.post_id = sp.post_id " +
+                     "WHERE sp.user_id = ? ORDER BY sp.created_at DESC";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    posts.add(mapResultSetToPost(rs));
+                }
+            }
+        }
+        return posts;
+    }
 }

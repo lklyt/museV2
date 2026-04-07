@@ -98,4 +98,15 @@ CREATE TABLE follows (
     INDEX idx_follower_id (follower_id)
 );
 
+-- Saved Posts Table (Junction table for many-to-many user-post relationships)
+CREATE TABLE saved_posts (
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+);
+
 
