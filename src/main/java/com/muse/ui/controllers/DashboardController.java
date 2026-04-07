@@ -1,10 +1,12 @@
 package com.muse.ui.controllers;
 
+import com.muse.models.Comment;
 import com.muse.models.Community;
 import com.muse.models.ClothingItem;
 import com.muse.models.Post;
 import com.muse.models.User;
 import com.muse.models.ClothingCategory;
+import com.muse.service.CommentService;
 import com.muse.service.CommunityService;
 import com.muse.service.PostService;
 import com.muse.service.UserService;
@@ -24,10 +26,13 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +73,7 @@ public class DashboardController {
 
     // ── Services ─────────────────────────────────────────────────────────────
     private final PostService postService = new PostService();
+    private final CommentService commentService = new CommentService();
     private final CommunityService communityService = new CommunityService();
     private final UserService userService = new UserService();
     private final ClothingItemService clothingItemService = new ClothingItemService();
@@ -1286,25 +1292,26 @@ public class DashboardController {
      * returns a styled VBox placeholder.
      */
     private Node buildPostCard(Post post) {
-
-        int currentUserId = SessionManager.getInstance().getCurrentUserId(); 
-        postService.loadRatingData(post, currentUserId);
-
-        VBox card = new VBox(10);
-        card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 12;");
+        // Outer card uses HBox so the outfit takes centre stage and comments sit alongside it
+        HBox card = new HBox(15);
+        card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 15;");
         card.setMaxWidth(Double.MAX_VALUE);
+        card.setAlignment(Pos.TOP_LEFT);
+
+        // ── LEFT: large outfit preview ────────────────────────────────────────
+        VBox leftSection = new VBox(10);
+        leftSection.setPrefWidth(450);
+        HBox.setHgrow(leftSection, Priority.ALWAYS);
 
         Label author = new Label("by @" + post.getAuthorUsername());
-        author.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a4a4a;");
-        // Clicking the author label navigates to their profile
+        author.setStyle("-fx-font-size: 14px; -fx-text-fill: #2e2e2e; -fx-font-weight: bold; -fx-cursor: hand;");
         author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
-        author.setStyle(author.getStyle() + " -fx-cursor: hand;");
 
         AnchorPane postOutfitPreview = new AnchorPane();
-        postOutfitPreview.setPrefWidth(220);
-        postOutfitPreview.setPrefHeight(340);
-        postOutfitPreview.setStyle(
-                "-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; -fx-border-width: 1; -fx-border-radius: 12; -fx-background-radius: 12;");
+        postOutfitPreview.setPrefWidth(450);
+        postOutfitPreview.setPrefHeight(550);
+        postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; " +
+                                   "-fx-border-width: 1; -fx-border-radius: 15; -fx-background-radius: 15;");
 
         renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
         // --- ADD THE AVERAGE RATING (TOP RIGHT) ---
@@ -1326,17 +1333,105 @@ public class DashboardController {
         // Add rating elements to the preview pane
         postOutfitPreview.getChildren().addAll(avgLabel, starBox);
         if (postOutfitPreview.getChildren().isEmpty()) {
-            Label noItemsLabel = infoLabel("No outfit items attached.");
-            noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 13px;");
-            noItemsLabel.setLayoutX(20);
-            noItemsLabel.setLayoutY(150);
+            Label noItemsLabel = new Label("Empty Lookbook");
+            noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 14px;");
+            noItemsLabel.setLayoutX(170);
+            noItemsLabel.setLayoutY(250);
             postOutfitPreview.getChildren().add(noItemsLabel);
         }
 
-        card.getChildren().addAll(author, postOutfitPreview);
+        leftSection.getChildren().addAll(author, postOutfitPreview);
+
+        // ── RIGHT: scrollable comments + interactive input ────────────────────
+        VBox rightSection = new VBox(8);
+        rightSection.setPrefWidth(220);
+        rightSection.setMinWidth(220);
+        rightSection.setMaxWidth(220);
+
+        // Scrollable comment list
+        VBox commentsContent = new VBox(4);
+        commentsContent.setStyle("-fx-background-color: #f4efe8; -fx-padding: 10; -fx-border-radius: 12; -fx-background-radius: 12;");
+        refreshCommentsBox(commentsContent, post);
+
+        ScrollPane commentsScroll = new ScrollPane(commentsContent);
+        commentsScroll.setFitToWidth(true);
+        commentsScroll.setPrefHeight(460);
+        commentsScroll.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; " +
+                                "-fx-background-radius: 12;");
+        VBox.setVgrow(commentsScroll, Priority.ALWAYS);
+
+        // Comment input row
+        TextField commentInput = new TextField();
+        commentInput.setPromptText("Add a comment...");
+        commentInput.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(commentInput, Priority.ALWAYS);
+
+        Button commentButton = new Button("Post");
+        commentButton.setStyle("-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 12;");
+        commentButton.setOnAction(e -> {
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
+            if (currentUserId < 0) {
+                showErrorAlert("Not Logged In", "Please log in before adding a comment.");
+                return;
+            }
+            String commentText = commentInput.getText().trim();
+            if (commentText.isEmpty()) {
+                showErrorAlert("Validation Error", "Comment cannot be empty.");
+                return;
+            }
+            try {
+                commentService.addComment(post.getPostId(), currentUserId, commentText);
+                post.setComments(commentService.getCommentsByPost(post.getPostId()));
+                refreshCommentsBox(commentsContent, post);
+                commentInput.clear();
+            } catch (Exception ex) {
+                logger.error("Error adding comment to post " + post.getPostId(), ex);
+                showErrorAlert("Comment Failed", "Could not add comment: " + ex.getMessage());
+            }
+        });
+
+        HBox commentRow = new HBox(6, commentInput, commentButton);
+        commentRow.setAlignment(Pos.CENTER_LEFT);
+
+        rightSection.getChildren().addAll(commentsScroll, commentRow);
+
+        card.getChildren().addAll(leftSection, rightSection);
         return card;
     }
 
+    private void refreshCommentsBox(VBox commentsBox, Post post) {
+        commentsBox.getChildren().clear();
+        if (post.getComments() == null || post.getComments().isEmpty()) {
+            Label noCommentsLabel = new Label("No comments yet.");
+            noCommentsLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #6e6a63;");
+            commentsBox.getChildren().add(noCommentsLabel);
+            return;
+        }
+
+        Label commentsTitle = new Label(post.getComments().size() + " comment" + (post.getComments().size() == 1 ? "" : "s"));
+        commentsTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #3f3b36; -fx-font-size: 13px;");
+        commentsBox.getChildren().add(commentsTitle);
+
+        int maxCommentsToShow = 3;
+        int shown = 0;
+        for (Comment comment : post.getComments()) {
+            if (comment == null) continue;
+            Label commentLabel = new Label("@" + comment.getAuthorUsername() + ": " + comment.getContent());
+            commentLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3f3b36;");
+            commentLabel.setWrapText(true);
+            commentsBox.getChildren().add(commentLabel);
+            shown++;
+            if (shown >= maxCommentsToShow) {
+                break;
+            }
+        }
+
+        if (post.getComments().size() > maxCommentsToShow) {
+            Label moreLabel = new Label("View " + (post.getComments().size() - maxCommentsToShow) + " more comment" + ((post.getComments().size() - maxCommentsToShow) == 1 ? "" : "s"));
+            moreLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #5c5348;");
+            commentsBox.getChildren().add(moreLabel);
+        }
+    }
     private HBox createStarRatingBox(Post post, int userId, Label avgLabel) {
         HBox box = new HBox(2);
         box.setStyle("-fx-background-color: rgba(255,255,255,0.6); -fx-background-radius: 10; -fx-padding: 3 6;");
