@@ -1,9 +1,10 @@
 package com.muse.models;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-public class User {
+public class User implements Searchable {
     private int userId;
     private String username;
     private String email;
@@ -45,4 +46,25 @@ public class User {
 
     public List<User> getFollowers() { return followers; }
     public void setFollowers(List<User> followers) { this.followers = followers; }
+
+    // Implementing Searchable
+
+    /**
+     * Index 0: username  → primary identifier, shown in autocomplete suggestions
+     *          and carries the highest search weight.
+     *
+     * Note: email is intentionally excluded for privacy — users should only be
+     * discoverable by their public username.
+     */
+    @Override
+    public ArrayList<String> getSearchKeywords() {
+        ArrayList<String> keywords = new ArrayList<>();
+        if (username != null) keywords.add(username); // index 0 – primary
+        return keywords;
+    }
+
+    @Override
+    public SearchType getSearchType() {
+        return SearchType.PEOPLE;
+    }
 }

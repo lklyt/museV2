@@ -1,8 +1,9 @@
 package com.muse.models;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
-public class Community {
+public class Community implements Searchable {
     private int communityId;
     private String name;
     private LocalDateTime createdAt;
@@ -28,7 +29,22 @@ public class Community {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    public int getPostCount(){return postCount;}
-    public void setPostCount(int count){this.postCount = count;}
-}
+    public int getPostCount() { return postCount; }
+    public void setPostCount(int count) { this.postCount = count; }
 
+    // Implementing Searchable
+    /**
+     * Index 0: community name → primary identifier shown in suggestions.
+     */
+    @Override
+    public ArrayList<String> getSearchKeywords() {
+        ArrayList<String> keywords = new ArrayList<>();
+        if (name != null) keywords.add(name); // index 0 – primary
+        return keywords;
+    }
+
+    @Override
+    public SearchType getSearchType() {
+        return SearchType.COMMUNITIES;
+    }
+}

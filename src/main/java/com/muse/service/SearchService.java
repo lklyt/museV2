@@ -19,13 +19,11 @@ import java.util.Comparator;
 /**
  * Core search engine for MUSE.
  *
- * <h2>How scoring works</h2>
- * Every {@link Searchable} object exposes a keyword list via
- * {@code getSearchKeywords()}. The <b>first keyword (index 0)</b> is treated as
+ * Every Searchable object exposes a keyword list via
+ * getSearchKeywords(). The first keyword (index 0) is treated as
  * the primary identifier (username, post title, etc.) and receives the highest
  * weight. All remaining keywords are treated as supporting tags.
  *
- * <pre>
  * Score breakdown per keyword match:
  *   Primary keyword (index 0):
  *     exact match   → +100
@@ -38,16 +36,10 @@ import java.util.Comparator;
  *     starts with   → +15
  *     contains      → +10
  *     word partial  → +3
- * </pre>
  *
  * Objects with a total score of 0 are excluded from results.
  * Results are returned sorted highest-score-first.
  *
- * <h2>MySQL / DAO note</h2>
- * This class delegates all data retrieval to the DAO layer. Model classes build
- * their keyword list from fields already loaded by the DAO — no extra DB query
- * or keyword table is needed. See {@link com.muse.models.Searchable} for the
- * full contract teammates must follow.
  */
 public class SearchService {
 
@@ -55,10 +47,8 @@ public class SearchService {
     private CommunityDAO communityDAO;
     private PostDAO postDAO;
 
-    // ClothingItem does not have a DAO yet in the project.
-    // It is kept as an in-memory list until a ClothingItemDAO is added.
-    // When your teammate creates ClothingItemDAO, replace this the same
-    // way UserDAO/CommunityDAO/PostDAO are handled below.
+    // ClothingItem is kept as an in-memory list for efficiency.
+
     private ArrayList<ClothingItem> clothingItems;
 
     public SearchService(UserDAO userDAO, CommunityDAO communityDAO, PostDAO postDAO) {
@@ -129,7 +119,6 @@ public class SearchService {
     /**
      * Filters and ranks clothing items by category and query.
      * Used by the half-screen clothing picker on the avatar page.
-     * Pass {@code null} for category to search across all categories.
      */
     public ArrayList<ClothingItem> filterClothing(String query, ClothingCategory category) {
         ArrayList<ClothingItem> categoryMatches = new ArrayList<ClothingItem>();
@@ -274,9 +263,7 @@ public class SearchService {
     }
 
     /**
-     * Scores a single {@link Searchable} object against the query.
-     *
-     * <p>Index 0 of the keyword list is the primary identifier and carries the
+     * Index 0 of the keyword list is the primary identifier and carries the
      * highest weight. All subsequent keywords are treated as supporting tags
      * with lower weights. A score of 0 means no match at all.
      */
@@ -337,10 +324,6 @@ public class SearchService {
     private boolean isBlank(String text) {
         return text == null || text.trim().length() == 0;
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Internal scoring wrapper
-    // ─────────────────────────────────────────────────────────────────────────
 
     private static class SearchMatch<T> {
         private final T item;

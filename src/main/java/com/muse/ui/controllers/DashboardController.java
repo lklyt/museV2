@@ -3,17 +3,18 @@ package com.muse.ui.controllers;
 import com.muse.dao.CommunityDAOImpl;
 import com.muse.dao.PostDAOImpl;
 import com.muse.dao.UserDAOImpl;
+import com.muse.models.ClothingCategory;
+import com.muse.models.ClothingItem;
 import com.muse.models.Community;
 import com.muse.models.Post;
 import com.muse.models.SearchResult;
 import com.muse.models.SearchType;
 import com.muse.models.User;
-import com.muse.models.ClothingCategory;
+import com.muse.service.ClothingItemService;
 import com.muse.service.CommunityService;
 import com.muse.service.PostService;
 import com.muse.service.SearchService;
 import com.muse.service.UserService;
-import com.muse.service.ClothingItemService;
 import com.muse.util.SessionManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -34,29 +35,10 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Unified controller for {@code dashboard.fxml}.
- *
- * <p>All in-app navigation is handled here by toggling {@code visible} /
- * {@code managed} on the named view VBoxes that live inside the centre
- * {@code StackPane}. No additional controller classes are needed for the inner
- * views (Communities, CreateStyle, Profile, Settings, CommunityDetail,
- * OtherProfile).
- *
- * <p><b>FXML views managed by this controller</b>
- * <ul>
- *   <li>{@code homeView}            – For-You / Discover feed</li>
- *   <li>{@code communitiesView}     – Community grid + Create Community</li>
- *   <li>{@code createStyleView}     – Outfit builder</li>
- *   <li>{@code profileView}         – Current user's profile</li>
- *   <li>{@code settingsView}        – App settings</li>
- *   <li>{@code communityDetailView} – Single community (posts feed)</li>
- *   <li>{@code otherProfileView}    – Another user's profile</li>
- * </ul>
- */
 public class DashboardController {
 
     private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
@@ -67,6 +49,24 @@ public class DashboardController {
     private final UserService userService = new UserService();
     private final ClothingItemService clothingItemService = new ClothingItemService();
 
+    /**
+     * Shared search service — used for both the global sidebar search and
+     * real-time filtering in the Create Style clothing grid.
+     */
+    private SearchService searchService;
+
+    // ── Create Style state ────────────────────────────────────────────────────
+    /**
+     * The category currently selected in Create Style. Null = no filter (show all).
+     */
+    private ClothingCategory currentCategory = null;
+
+    /**
+     * Full clothing item list, loaded once on initialize so that search and
+     * category filtering can work together without repeated DAO calls.
+     */
+    private ArrayList<ClothingItem> allClothingItems = new ArrayList<>();
+
     // ── Sidebar ───────────────────────────────────────────────────────────────
     @FXML private TextField searchField;
     @FXML private Button homeButton;
@@ -76,7 +76,7 @@ public class DashboardController {
     @FXML private Button settingsButton;
     @FXML private Button logoutButton;
 
-    // ── View containers (StackPane children) ──────────────────────────────────
+    // ── View containers ───────────────────────────────────────────────────────
     @FXML private VBox homeView;
     @FXML private VBox communitiesView;
     @FXML private VBox createStyleView;
@@ -99,7 +99,6 @@ public class DashboardController {
     @FXML private ImageView outfitPreview;
     @FXML private Button postStyleButton;
     @FXML private GridPane clothingItemsGrid;
-    // Category buttons
     @FXML private Button hatButton;
     @FXML private Button topButton;
     @FXML private Button dressButton;
@@ -147,16 +146,15 @@ public class DashboardController {
             "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;";
     private static final String TAB_INACTIVE =
             "-fx-background-color: transparent; -fx-border-color: #8c9c76; -fx-border-radius: 15;";
+    private static final String CATEGORY_SELECTED =
+            "-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 15;";
+    private static final String CATEGORY_UNSELECTED =
+            "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-background-radius: 15;";
 
-    /** Tracks which home-tab (forYou / discover) is currently active. */
     private boolean isForYouActive = true;
-    /** Id of the community currently shown in communityDetailView. */
     private int currentCommunityId = -1;
-    /** Id of the user currently shown in otherProfileView. */
     private int currentOtherUserId = -1;
-    /** Whether explicit-comment filter is on. */
     private boolean explicitFilterOn = true;
-    /** Whether the logged-in user's profile is public. */
     private boolean profileIsPublic = true;
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -171,10 +169,35 @@ public class DashboardController {
         profileButton.setOnAction(e -> openProfile());
         settingsButton.setOnAction(e -> openSettings());
         logoutButton.setOnAction(e -> handleLogout());
-
         forYouButton.setOnAction(e -> openForYou());
         discoverButton.setOnAction(e -> openDiscover());
         luckyButton.setOnAction(e -> openLucky());
+
+        // Build the shared SearchService and pre-load all clothing items into it.
+        // Loading once here means every keystroke in Create Style doesn't hit the DB.
+        searchService = new SearchService(
+                new UserDAOImpl(),
+                new CommunityDAOImpl(),
+                new PostDAOImpl()
+        );
+        try {
+            for (ClothingCategory cat : ClothingCategory.values()) {
+                allClothingItems.addAll(clothingItemService.getItemsWithCachedImages(cat));
+            }
+            searchService.setClothingItems(allClothingItems);
+        } catch (Exception ex) {
+            logger.warn("Could not pre-load clothing items for search", ex);
+        }
+
+        // Real-time listener on the shared search field.
+        // When Create Style is the active view, every keystroke filters the
+        // clothing grid (category + text combined). In all other views the field
+        // is left alone — pressing Enter triggers handleSearch() instead.
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (createStyleView.isVisible()) {
+                filterClothingGrid(newVal);
+            }
+        });
 
         openHome();
     }
@@ -183,35 +206,31 @@ public class DashboardController {
     //  Navigation – sidebar
     // ═════════════════════════════════════════════════════════════════════════
 
-    @FXML
-    public void openHome() {
+    @FXML public void openHome() {
         activateView(homeView);
         setNavActive(homeButton);
         if (isForYouActive) openForYou(); else openDiscover();
     }
 
-    @FXML
-    public void openCommunities() {
+    @FXML public void openCommunities() {
         activateView(communitiesView);
         setNavActive(communitiesButton);
         loadCommunities();
     }
 
-    @FXML
-    public void openCreateStyle() {
+    @FXML public void openCreateStyle() {
         activateView(createStyleView);
         setNavActive(createStyleButton);
+        filterClothingGrid(searchField.getText());
     }
 
-    @FXML
-    public void openProfile() {
+    @FXML public void openProfile() {
         activateView(profileView);
         setNavActive(profileButton);
         loadOwnProfile();
     }
 
-    @FXML
-    public void openSettings() {
+    @FXML public void openSettings() {
         activateView(settingsView);
         setNavActive(settingsButton);
         syncSettingsUi();
@@ -221,33 +240,25 @@ public class DashboardController {
     //  Home – tab switching
     // ═════════════════════════════════════════════════════════════════════════
 
-    @FXML
-    public void openForYou() {
+    @FXML public void openForYou() {
         isForYouActive = true;
         forYouButton.setStyle(TAB_ACTIVE);
         discoverButton.setStyle(TAB_INACTIVE);
         loadForYouFeed();
     }
 
-    @FXML
-    public void openDiscover() {
+    @FXML public void openDiscover() {
         isForYouActive = false;
         discoverButton.setStyle(TAB_ACTIVE);
         forYouButton.setStyle(TAB_INACTIVE);
         loadDiscoverFeed();
     }
 
-    @FXML
-    public void openLucky() {
+    @FXML public void openLucky() {
         try {
             List<Post> posts = postService.getAllPosts();
-            if (!posts.isEmpty()) {
-                int idx = (int) (Math.random() * posts.size());
-                openOtherProfile(posts.get(idx).getAuthorId());
-            }
-        } catch (Exception ex) {
-            logger.warn("Lucky button failed", ex);
-        }
+            if (!posts.isEmpty()) openOtherProfile(posts.get((int)(Math.random() * posts.size())).getAuthorId());
+        } catch (Exception ex) { logger.warn("Lucky button failed", ex); }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -258,13 +269,8 @@ public class DashboardController {
         feedVBox.getChildren().clear();
         try {
             List<Post> posts = postService.getAllPosts();
-            if (posts.isEmpty()) {
-                feedVBox.getChildren().add(infoLabel("No posts yet – be the first to share a style!"));
-            } else {
-                for (Post post : posts) {
-                    feedVBox.getChildren().add(buildPostCard(post));
-                }
-            }
+            if (posts.isEmpty()) feedVBox.getChildren().add(infoLabel("No posts yet – be the first to share a style!"));
+            else for (Post p : posts) feedVBox.getChildren().add(buildPostCard(p));
         } catch (Exception ex) {
             logger.error("Error loading For-You feed", ex);
             feedVBox.getChildren().add(infoLabel("Could not load feed: " + ex.getMessage()));
@@ -275,13 +281,10 @@ public class DashboardController {
         feedVBox.getChildren().clear();
         try {
             List<Post> posts = postService.getAllPosts();
-            if (posts.isEmpty()) {
-                feedVBox.getChildren().add(infoLabel("Nothing to discover yet."));
-            } else {
+            if (posts.isEmpty()) feedVBox.getChildren().add(infoLabel("Nothing to discover yet."));
+            else {
                 java.util.Collections.shuffle(posts);
-                for (Post post : posts) {
-                    feedVBox.getChildren().add(buildPostCard(post));
-                }
+                for (Post p : posts) feedVBox.getChildren().add(buildPostCard(p));
             }
         } catch (Exception ex) {
             logger.error("Error loading Discover feed", ex);
@@ -303,14 +306,11 @@ public class DashboardController {
                 btn.setPrefHeight(75);
                 btn.setMaxWidth(Double.MAX_VALUE);
                 btn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
-                        "-fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px; " +
-                        "-fx-font-size: 19px;");
-                final int communityId = c.getCommunityId();
-                final String communityName = c.getName();
-                btn.setOnAction(e -> openCommunityDetail(communityId, communityName));
+                        "-fx-border-radius: 15; -fx-padding: 10px; -fx-background-radius: 15px; -fx-font-size: 19px;");
+                final int id = c.getCommunityId(); final String name = c.getName();
+                btn.setOnAction(e -> openCommunityDetail(id, name));
                 communityGrid.add(btn, col, row);
-                col++;
-                if (col == 3) { col = 0; row++; }
+                if (++col == 3) { col = 0; row++; }
             }
         } catch (Exception ex) {
             logger.error("Error loading communities", ex);
@@ -318,27 +318,21 @@ public class DashboardController {
         }
     }
 
-    @FXML
-    private void handleCommunityClick(javafx.event.ActionEvent event) {
-        Button clickedButton = (Button) event.getSource();
-        openCommunityDetail(-1, clickedButton.getText());
+    @FXML private void handleCommunityClick(javafx.event.ActionEvent event) {
+        openCommunityDetail(-1, ((Button) event.getSource()).getText());
     }
 
-    @FXML
-    private void handleCreateCommunity() {
+    @FXML private void handleCreateCommunity() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("New Community");
         dialog.setHeaderText("Create a new MUSE Community");
         dialog.setContentText("Please enter community name:");
-
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(name -> {
+        dialog.showAndWait().ifPresent(name -> {
             try {
                 communityService.createCommunity(name);
                 logger.info("Successfully created community: {}", name);
                 loadCommunities();
-            } catch (IllegalArgumentException ex) {
-                showErrorAlert("Validation Error", ex.getMessage());
+            } catch (IllegalArgumentException ex) { showErrorAlert("Validation Error", ex.getMessage());
             } catch (Exception ex) {
                 logger.error("Error creating community", ex);
                 showErrorAlert("Database Error", "Could not save community: " + ex.getMessage());
@@ -346,62 +340,88 @@ public class DashboardController {
         });
     }
 
-    private void showErrorAlert(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
-    }
-
     // ═════════════════════════════════════════════════════════════════════════
-    //  Create Style
+    //  Create Style – category buttons + search filtering
     // ═════════════════════════════════════════════════════════════════════════
 
+    /**
+     * Called by each category button (wired via onAction in FXML).
+     *
+     * Clicking an already-selected category deselects it (toggles back to "show all"),
+     * then immediately re-applies the current search text so both filters always
+     * work together.
+     */
     @FXML
     private void selectCategory(javafx.event.ActionEvent event) {
         Button clicked = (Button) event.getSource();
-        for (Button b : new Button[]{ hatButton, topButton, dressButton,
-                coatButton, purseButton, bottomButton, shoesButton }) {
-            boolean isSelected = b == clicked;
-            b.setStyle("-fx-background-color: " + (isSelected ? "#745a42" : "#8c9c76") +
-                    "; -fx-text-fill: white; -fx-background-radius: 15;");
-        }
-        String categoryName = clicked.getText();
-        try {
-            ClothingCategory category = ClothingCategory.valueOf(categoryName);
-            loadClothingItems(category);
-            logger.info("Category selected: {}", categoryName);
-        } catch (Exception ex) {
-            logger.error("Error loading clothing items for category: {}", categoryName, ex);
-            clothingItemsGrid.getChildren().clear();
-            Label errorLabel = infoLabel("Could not load items.");
-            GridPane.setColumnSpan(errorLabel, 2);
-            clothingItemsGrid.getChildren().add(errorLabel);
-        }
-    }
 
-    private void loadClothingItems(ClothingCategory category) throws Exception {
-        clothingItemsGrid.getChildren().clear();
-        var items = clothingItemService.getItemsWithCachedImages(category);
-        if (items.isEmpty()) {
-            Label noItemsLabel = infoLabel("No items in this category.");
-            GridPane.setColumnSpan(noItemsLabel, 2);
-            clothingItemsGrid.getChildren().add(noItemsLabel);
+        ClothingCategory clickedCategory;
+        try {
+            clickedCategory = ClothingCategory.valueOf(clicked.getText());
+        } catch (IllegalArgumentException ex) {
+            logger.error("Unknown category button text: {}", clicked.getText());
             return;
         }
+
+        // Toggle: re-clicking the active category clears it
+        currentCategory = (clickedCategory == currentCategory) ? null : clickedCategory;
+
+        // Sync highlight state on all category buttons
+        for (Button b : new Button[]{ hatButton, topButton, dressButton,
+                coatButton, purseButton, bottomButton, shoesButton }) {
+            try {
+                boolean selected = currentCategory != null
+                        && ClothingCategory.valueOf(b.getText()) == currentCategory;
+                b.setStyle(selected ? CATEGORY_SELECTED : CATEGORY_UNSELECTED);
+            } catch (IllegalArgumentException e) {
+                b.setStyle(CATEGORY_UNSELECTED);
+            }
+        }
+
+        // Re-filter with the current search text + new category
+        filterClothingGrid(searchField.getText());
+    }
+
+    /**
+     * Core filtering method for the Create Style clothing grid.
+     *
+     * Combines the active category filter and the search query, delegating
+     * scoring to {@link SearchService#filterClothing}. Both filters are
+     * applied simultaneously:
+     * 
+     *Category only → shows all items in that category, unranked.
+     *Search text only → scores all items against the query, all categories.
+     *Both → scores items in the selected category against the query.
+     *Neither → shows all items (entry state).
+     *
+     * @param query current text in the sidebar search field (null or blank = no text filter)
+     */
+    private void filterClothingGrid(String query) {
+        clothingItemsGrid.getChildren().clear();
+
+        ArrayList<ClothingItem> filtered = searchService.filterClothing(query, currentCategory);
+
+        if (filtered.isEmpty()) {
+            String message = (query != null && !query.trim().isEmpty())
+                    ? "No items match \"" + query.trim() + "\"."
+                    : "No items in this category.";
+            Label empty = infoLabel(message);
+            GridPane.setColumnSpan(empty, 2);
+            clothingItemsGrid.getChildren().add(empty);
+            return;
+        }
+
         int row = 0, col = 0;
-        for (var item : items) {
+        for (ClothingItem item : filtered) {
             Button itemBtn = new Button();
             itemBtn.setPrefHeight(150);
             itemBtn.setPrefWidth(150);
             itemBtn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
-                    "-fx-border-radius: 10; -fx-padding: 5px; -fx-background-radius: 10px; " +
-                    "-fx-font-size: 12px;");
+                    "-fx-border-radius: 10; -fx-padding: 5px; -fx-background-radius: 10px; -fx-font-size: 12px;");
+
             if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
                 try {
-                    Image img = new Image(item.getImageUrl());
-                    ImageView imgView = new ImageView(img);
+                    ImageView imgView = new ImageView(new Image(item.getImageUrl()));
                     imgView.setFitHeight(130);
                     imgView.setFitWidth(130);
                     imgView.setPreserveRatio(true);
@@ -410,19 +430,16 @@ public class DashboardController {
                     logger.warn("Could not load image for item: {}", item.getDescription());
                 }
             }
+
             clothingItemsGrid.add(itemBtn, col, row);
-            col++;
-            if (col == 2) { col = 0; row++; }
+            if (++col == 2) { col = 0; row++; }
         }
     }
 
-    @FXML
-    private void handlePostStyle() {
+    @FXML private void handlePostStyle() {
         logger.info("Post Style clicked");
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                "Posting outfits coming soon!", ButtonType.OK);
-        alert.setHeaderText(null);
-        alert.showAndWait();
+        new Alert(Alert.AlertType.INFORMATION, "Posting outfits coming soon!", ButtonType.OK)
+                {{ setHeaderText(null); }}.showAndWait();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -432,100 +449,66 @@ public class DashboardController {
     private void loadOwnProfile() {
         User current = SessionManager.getInstance().getCurrentUser();
         if (current == null) return;
-
         usernameLabel.setText(current.getUsername());
         myPostsVBox.getChildren().clear();
         myPostsVBox.getChildren().add(sectionHeader("Posts"));
-
         try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
-            List<Post> posts = postService.getPostsByAuthor(userId);
-            if (posts.isEmpty()) {
-                myPostsVBox.getChildren().add(infoLabel("No posts yet."));
-            } else {
-                for (Post p : posts) {
-                    myPostsVBox.getChildren().add(buildPostCard(p));
-                }
-            }
+            List<Post> posts = postService.getPostsByAuthor(SessionManager.getInstance().getCurrentUserId());
+            if (posts.isEmpty()) myPostsVBox.getChildren().add(infoLabel("No posts yet."));
+            else for (Post p : posts) myPostsVBox.getChildren().add(buildPostCard(p));
         } catch (Exception ex) {
             logger.error("Error loading own posts", ex);
             myPostsVBox.getChildren().add(infoLabel("Could not load posts."));
         }
-
         savedOutfitsVBox.getChildren().clear();
         savedOutfitsVBox.getChildren().add(sectionHeader("Saved Outfits"));
         savedOutfitsVBox.getChildren().add(infoLabel("No saved outfits yet."));
     }
 
-    @FXML
-    private void handleShowFollowers() {
-        logger.info("Show Followers clicked");
-        profileView.setVisible(false);
-        profileView.setManaged(false);
-        followersListView.setVisible(true);
-        followersListView.setManaged(true);
+    @FXML private void handleShowFollowers() {
+        profileView.setVisible(false); profileView.setManaged(false);
+        followersListView.setVisible(true); followersListView.setManaged(true);
         followersListVBox.getChildren().clear();
         try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
-            List<User> followers = userService.getFollowers(userId);
-            if (followers.isEmpty()) {
-                followersListVBox.getChildren().add(infoLabel("You don't have any followers yet."));
-            } else {
-                for (User user : followers) {
-                    followersListVBox.getChildren().add(createFollowUserLabel(user.getUsername()));
-                }
-            }
+            List<User> followers = userService.getFollowers(SessionManager.getInstance().getCurrentUserId());
+            if (followers.isEmpty()) followersListVBox.getChildren().add(infoLabel("You don't have any followers yet."));
+            else for (User u : followers) followersListVBox.getChildren().add(createFollowUserLabel(u.getUsername()));
         } catch (Exception ex) {
             logger.error("Error loading followers", ex);
             followersListVBox.getChildren().add(infoLabel("Could not load followers: " + ex.getMessage()));
         }
     }
 
-    @FXML
-    private void handleShowFollowing() {
-        logger.info("Show Following clicked");
-        profileView.setVisible(false);
-        profileView.setManaged(false);
-        followingListView.setVisible(true);
-        followingListView.setManaged(true);
+    @FXML private void handleShowFollowing() {
+        profileView.setVisible(false); profileView.setManaged(false);
+        followingListView.setVisible(true); followingListView.setManaged(true);
         followingListVBox.getChildren().clear();
         try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
-            List<User> following = userService.getFollowing(userId);
-            if (following.isEmpty()) {
-                followingListVBox.getChildren().add(infoLabel("You aren't following anyone yet."));
-            } else {
-                for (User user : following) {
-                    followingListVBox.getChildren().add(createFollowUserLabel(user.getUsername()));
-                }
-            }
+            List<User> following = userService.getFollowing(SessionManager.getInstance().getCurrentUserId());
+            if (following.isEmpty()) followingListVBox.getChildren().add(infoLabel("You aren't following anyone yet."));
+            else for (User u : following) followingListVBox.getChildren().add(createFollowUserLabel(u.getUsername()));
         } catch (Exception ex) {
             logger.error("Error loading following list", ex);
             followingListVBox.getChildren().add(infoLabel("Could not load following list: " + ex.getMessage()));
         }
     }
 
-    @FXML
-    private void closeFollowLists() {
-        followersListView.setVisible(false);
-        followersListView.setManaged(false);
-        followingListView.setVisible(false);
-        followingListView.setManaged(false);
+    @FXML private void closeFollowLists() {
+        followersListView.setVisible(false); followersListView.setManaged(false);
+        followingListView.setVisible(false); followingListView.setManaged(false);
         openProfile();
     }
 
     private Label createFollowUserLabel(String username) {
         Label label = new Label("@" + username);
         label.setMaxWidth(Double.MAX_VALUE);
-        label.setStyle(
-                "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; " +
-                "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;");
-        label.setOnMouseEntered(e -> label.setStyle(
-                "-fx-background-color: #779946; -fx-text-fill: white; -fx-padding: 15; " +
-                "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;"));
-        label.setOnMouseExited(e -> label.setStyle(
-                "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; " +
-                "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;"));
+        String base = "-fx-background-color: #8c9c76; -fx-text-fill: white; -fx-padding: 15; " +
+                "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold;";
+        String hover = "-fx-background-color: #779946; -fx-text-fill: white; -fx-padding: 15; " +
+                "-fx-background-radius: 10; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;";
+        label.setStyle(base);
+        label.setOnMouseEntered(e -> label.setStyle(hover));
+        label.setOnMouseExited(e -> label.setStyle(base));
         return label;
     }
 
@@ -546,91 +529,45 @@ public class DashboardController {
                 : "-fx-background-color: #ab2c2c; -fx-text-fill: white; -fx-border-color: #8c9c76; -fx-border-radius: 15; -fx-background-radius: 15; -fx-padding: 10 20;");
     }
 
-    @FXML private void handleSetPublic()  { profileIsPublic = true;  syncSettingsUi(); /* TODO: persist */ }
-    @FXML private void handleSetPrivate() { profileIsPublic = false; syncSettingsUi(); /* TODO: persist */ }
+    @FXML private void handleSetPublic()  { profileIsPublic = true;  syncSettingsUi(); }
+    @FXML private void handleSetPrivate() { profileIsPublic = false; syncSettingsUi(); }
+    @FXML private void handleToggleExplicitFilter() { explicitFilterOn = !explicitFilterOn; syncSettingsUi(); }
+    @FXML private void handleBlockedProfiles() { logger.info("Blocked Profiles clicked"); }
 
-    @FXML
-    private void handleToggleExplicitFilter() {
-        explicitFilterOn = !explicitFilterOn;
-        syncSettingsUi();
-        // TODO: persist preference via a UserPreferenceService
-    }
-
-    @FXML
-    private void handleBlockedProfiles() {
-        logger.info("Blocked Profiles clicked");
-        // TODO: open a blocked-profiles dialog or sub-view
-    }
-
-    @FXML
-    private void handleContactSupport() {
-        logger.info("Contact Support clicked");
+    @FXML private void handleContactSupport() {
         User current = SessionManager.getInstance().getCurrentUser();
         String username = (current != null) ? current.getUsername() : "unknown";
-        String subject = "MUSE Support Request – @" + username;
-        String body    = "Username: @" + username + "\n\nDescribe your issue below:\n";
         try {
-            String mailtoUri = "mailto:muse.supportt@gmail.com"
-                    + "?subject=" + java.net.URLEncoder.encode(subject, "UTF-8").replace("+", "%20")
-                    + "&body="    + java.net.URLEncoder.encode(body,    "UTF-8").replace("+", "%20");
-            java.awt.Desktop.getDesktop().mail(new java.net.URI(mailtoUri));
-        } catch (UnsupportedOperationException ex) {
-            logger.warn("Desktop mail not supported on this OS", ex);
-            showSupportFallbackDialog(username);
-        } catch (Exception ex) {
-            logger.error("Could not open mail client", ex);
-            showSupportFallbackDialog(username);
-        }
+            String uri = "mailto:muse.supportt@gmail.com"
+                    + "?subject=" + java.net.URLEncoder.encode("MUSE Support Request – @" + username, "UTF-8").replace("+", "%20")
+                    + "&body="    + java.net.URLEncoder.encode("Username: @" + username + "\n\nDescribe your issue below:\n", "UTF-8").replace("+", "%20");
+            java.awt.Desktop.getDesktop().mail(new java.net.URI(uri));
+        } catch (Exception ex) { showSupportFallbackDialog(username); }
     }
 
     private void showSupportFallbackDialog(String username) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION, "", ButtonType.OK);
-        alert.setTitle("Contact Support");
-        alert.setHeaderText("We couldn't open your mail client.");
-        alert.setContentText(
-                "Please email us directly at:\n\n"
-                + "muse.supportt@gmail.com\n\n"
-                + "Include your username (@" + username + ") in your message.");
-        alert.showAndWait();
+        new Alert(Alert.AlertType.INFORMATION, "Please email us at:\n\nmuse.supportt@gmail.com\n\nInclude your username (@" + username + ").", ButtonType.OK)
+                {{ setTitle("Contact Support"); setHeaderText("We couldn't open your mail client."); }}.showAndWait();
     }
 
-    @FXML
-    private void handleResetProfile() {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                "This will reset all your profile data. Are you sure?",
-                ButtonType.YES, ButtonType.NO);
-        confirm.setHeaderText("Reset Profile");
-        confirm.showAndWait().ifPresent(btn -> {
-            if (btn == ButtonType.YES) {
-                // TODO: call userService.resetProfile(...)
-                logger.info("Profile reset confirmed");
-            }
-        });
+    @FXML private void handleResetProfile() {
+        new Alert(Alert.AlertType.CONFIRMATION, "This will reset all your profile data. Are you sure?", ButtonType.YES, ButtonType.NO)
+                {{ setHeaderText("Reset Profile"); }}.showAndWait()
+                .ifPresent(btn -> { if (btn == ButtonType.YES) logger.info("Profile reset confirmed"); });
     }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Community Detail
     // ═════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Navigates to the detail view for a specific community.
-     *
-     * @param communityId   database ID of the community
-     * @param communityName display name shown in the header
-     */
     public void openCommunityDetail(int communityId, String communityName) {
         currentCommunityId = communityId;
         communityNameLabel.setText(communityName);
         communityPostsVBox.getChildren().clear();
         try {
             List<Post> posts = postService.getPostsByCommunity(communityId);
-            if (posts.isEmpty()) {
-                communityPostsVBox.getChildren().add(infoLabel("No posts in this community yet."));
-            } else {
-                for (Post p : posts) {
-                    communityPostsVBox.getChildren().add(buildPostCard(p));
-                }
-            }
+            if (posts.isEmpty()) communityPostsVBox.getChildren().add(infoLabel("No posts in this community yet."));
+            else for (Post p : posts) communityPostsVBox.getChildren().add(buildPostCard(p));
         } catch (Exception ex) {
             logger.error("Error loading community posts", ex);
             communityPostsVBox.getChildren().add(infoLabel("Could not load posts: " + ex.getMessage()));
@@ -639,21 +576,12 @@ public class DashboardController {
         setNavActive(communitiesButton);
     }
 
-    @FXML
-    private void handleAddPostToCommunity() {
-        logger.info("Redirecting to Create Style from community {}", currentCommunityId);
-        openCreateStyle();
-    }
+    @FXML private void handleAddPostToCommunity() { openCreateStyle(); }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Other-User Profile
     // ═════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Navigates to the profile view for another user.
-     *
-     * @param userId database ID of the user to display
-     */
     public void openOtherProfile(int userId) {
         currentOtherUserId = userId;
         updateFollowButton();
@@ -661,16 +589,10 @@ public class DashboardController {
         otherPostsVBox.getChildren().add(sectionHeader("Posts"));
         try {
             var userOpt = userService.getUserById(userId);
-            otherUsernameLabel.setText(
-                    userOpt.isPresent() ? userOpt.get().getUsername() : "Unknown User");
+            otherUsernameLabel.setText(userOpt.isPresent() ? userOpt.get().getUsername() : "Unknown User");
             List<Post> posts = postService.getPostsByAuthor(userId);
-            if (posts.isEmpty()) {
-                otherPostsVBox.getChildren().add(infoLabel("No posts yet."));
-            } else {
-                for (Post p : posts) {
-                    otherPostsVBox.getChildren().add(buildPostCard(p));
-                }
-            }
+            if (posts.isEmpty()) otherPostsVBox.getChildren().add(infoLabel("No posts yet."));
+            else for (Post p : posts) otherPostsVBox.getChildren().add(buildPostCard(p));
         } catch (Exception ex) {
             logger.error("Error loading other user profile", ex);
             otherPostsVBox.getChildren().add(infoLabel("Could not load profile: " + ex.getMessage()));
@@ -681,124 +603,90 @@ public class DashboardController {
         activateView(otherProfileView);
     }
 
-    @FXML
-    private void handleFollowUser() {
+    @FXML private void handleFollowUser() {
         try {
             int me = SessionManager.getInstance().getCurrentUserId();
             if (userService.isFollowing(me, currentOtherUserId)) {
                 userService.unfollowUser(me, currentOtherUserId);
                 followUserButton.setText("Follow");
-                logger.info("Unfollowed user {}", currentOtherUserId);
             } else {
                 userService.followUser(me, currentOtherUserId);
                 followUserButton.setText("Following ✓");
-                logger.info("Followed user {}", currentOtherUserId);
             }
         } catch (Exception ex) {
             logger.error("Error handling follow/unfollow", ex);
-            Alert alert = new Alert(Alert.AlertType.ERROR,
-                    "Operation failed: " + ex.getMessage(), ButtonType.OK);
-            alert.setHeaderText(null);
-            alert.showAndWait();
+            showErrorAlert("Error", "Operation failed: " + ex.getMessage());
         }
     }
 
     private void updateFollowButton() {
-        int me = SessionManager.getInstance().getCurrentUserId();
         try {
-            followUserButton.setText(
-                    userService.isFollowing(me, currentOtherUserId) ? "Following ✓" : "Follow");
-        } catch (Exception ex) {
-            logger.error("Error checking follow status", ex);
-            followUserButton.setText("Follow");
-        }
+            followUserButton.setText(userService.isFollowing(
+                    SessionManager.getInstance().getCurrentUserId(), currentOtherUserId)
+                    ? "Following ✓" : "Follow");
+        } catch (Exception ex) { followUserButton.setText("Follow"); }
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Search
-    // ═════════════════════════════════════════════════════════════════════════
-
     /**
-     * Triggered when the user presses Enter (or a search button) in the sidebar
-     * search field. Runs the query against all three types — People, Communities,
-     * and Posts — then renders the combined results in the home feed.
+     * Triggered when the user confirms a search (Enter / search button).
      *
-     * <p>Each section (People / Communities / Posts) only appears if it has at
-     * least one result, keeping the output clean. Clicking a person result opens
-     * their profile; clicking a community opens its detail view.
+     * In Create Style the real-time listener already handles filtering on every
+     * keystroke, so pressing Enter there is a no-op. In all other views this
+     * method runs a cross-entity search and shows results in the home feed.
      */
     @FXML
     private void handleSearch() {
+        if (createStyleView.isVisible()) return; // handled by the real-time listener
+
         String query = searchField.getText().trim();
         if (query.isEmpty()) return;
 
-        logger.info("Search query: {}", query);
+        logger.info("Global search query: {}", query);
 
-        SearchService searchService = new SearchService(
-                new UserDAOImpl(),
-                new CommunityDAOImpl(),
-                new PostDAOImpl()
-        );
-
-        SearchResult peopleResult    = searchService.searchAll(query, SearchType.PEOPLE);
-        SearchResult communityResult = searchService.searchAll(query, SearchType.COMMUNITIES);
-        SearchResult postResult      = searchService.searchAll(query, SearchType.POSTS);
+        SearchResult people     = searchService.searchAll(query, SearchType.PEOPLE);
+        SearchResult communities = searchService.searchAll(query, SearchType.COMMUNITIES);
+        SearchResult posts      = searchService.searchAll(query, SearchType.POSTS);
 
         feedVBox.getChildren().clear();
         feedVBox.getChildren().add(infoLabel("Search results for: \"" + query + "\""));
-
         boolean anyResults = false;
 
-        // ── People ────────────────────────────────────────────────────────────
-        if (!peopleResult.getUsers().isEmpty()) {
+        if (!people.getUsers().isEmpty()) {
             anyResults = true;
             feedVBox.getChildren().add(sectionHeader("People"));
-            for (User u : peopleResult.getUsers()) {
-                String displayText = (u.getDisplayName() != null)
-                        ? u.getDisplayName() + "  @" + u.getUsername()
-                        : u.getUsername() + "  @" + u.getUsername();
-
-                Label userLabel = new Label(displayText);
-                userLabel.setStyle(
-                        "-fx-font-size: 14px; -fx-padding: 8; " +
-                        "-fx-background-color: #C0B7AD; " +
-                        "-fx-background-radius: 10; -fx-cursor: hand;");
-                userLabel.setMaxWidth(Double.MAX_VALUE);
-                userLabel.setOnMouseClicked(e -> openOtherProfile(u.getUserId()));
-                feedVBox.getChildren().add(userLabel);
+            for (User u : people.getUsers()) {
+                String display = u.getUsername();
+                Label lbl = new Label(display);
+                lbl.setStyle("-fx-font-size: 14px; -fx-padding: 8; " +
+                        "-fx-background-color: #C0B7AD; -fx-background-radius: 10; -fx-cursor: hand;");
+                lbl.setMaxWidth(Double.MAX_VALUE);
+                lbl.setOnMouseClicked(e -> openOtherProfile(u.getUserId()));
+                feedVBox.getChildren().add(lbl);
             }
         }
 
-        // ── Communities ───────────────────────────────────────────────────────
-        if (!communityResult.getCommunities().isEmpty()) {
+        if (!communities.getCommunities().isEmpty()) {
             anyResults = true;
             feedVBox.getChildren().add(sectionHeader("Communities"));
-            for (Community c : communityResult.getCommunities()) {
+            for (Community c : communities.getCommunities()) {
                 Button btn = new Button(c.getName());
                 btn.setMaxWidth(Double.MAX_VALUE);
                 btn.setPrefHeight(60);
-                btn.setStyle(
-                        "-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
+                btn.setStyle("-fx-background-color: #cfc6c2; -fx-border-color: #745a42; " +
                         "-fx-border-radius: 15; -fx-background-radius: 15; -fx-font-size: 16px;");
                 btn.setOnAction(e -> openCommunityDetail(c.getCommunityId(), c.getName()));
                 feedVBox.getChildren().add(btn);
             }
         }
 
-        // ── Posts ─────────────────────────────────────────────────────────────
-        if (!postResult.getPosts().isEmpty()) {
+        if (!posts.getPosts().isEmpty()) {
             anyResults = true;
             feedVBox.getChildren().add(sectionHeader("Posts"));
-            for (Post p : postResult.getPosts()) {
-                feedVBox.getChildren().add(buildPostCard(p));
-            }
+            for (Post p : posts.getPosts()) feedVBox.getChildren().add(buildPostCard(p));
         }
 
-        if (!anyResults) {
-            feedVBox.getChildren().add(infoLabel("No results found for \"" + query + "\"."));
-        }
+        if (!anyResults) feedVBox.getChildren().add(infoLabel("No results found for \"" + query + "\"."));
 
-        // Show results in the home feed area
         activateView(homeView);
         setNavActive(homeButton);
     }
@@ -807,8 +695,7 @@ public class DashboardController {
     //  Logout
     // ═════════════════════════════════════════════════════════════════════════
 
-    @FXML
-    private void handleLogout() {
+    @FXML private void handleLogout() {
         SessionManager.getInstance().logout();
         try {
             Stage stage = (Stage) logoutButton.getScene().getWindow();
@@ -816,55 +703,44 @@ public class DashboardController {
             Parent root = loader.load();
             stage.setScene(new Scene(root, 900, 600));
             stage.show();
-        } catch (Exception ex) {
-            logger.error("Error navigating to login", ex);
-        }
+        } catch (Exception ex) { logger.error("Error navigating to login", ex); }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Private helpers
     // ═════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Makes one view VBox visible+managed and hides all others.
-     */
     private void activateView(VBox target) {
         for (VBox view : new VBox[]{ homeView, communitiesView, createStyleView,
                 profileView, settingsView, communityDetailView, otherProfileView }) {
-            boolean active = view == target;
-            view.setVisible(active);
-            view.setManaged(active);
+            view.setVisible(view == target);
+            view.setManaged(view == target);
         }
     }
 
-    /**
-     * Marks {@code active} as the highlighted sidebar button and resets all others.
-     */
     private void setNavActive(Button active) {
         for (Button btn : new Button[]{ homeButton, communitiesButton,
-                createStyleButton, profileButton, settingsButton }) {
+                createStyleButton, profileButton, settingsButton })
             btn.setStyle(btn == active ? NAV_ACTIVE : NAV_INACTIVE);
-        }
     }
 
-    /**
-     * Builds a post card node from a {@link Post}.
-     * Replace with an FXMLLoader call once PostController is wired up.
-     */
     private Node buildPostCard(Post post) {
         VBox card = new VBox(6);
         card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 12;");
         card.setMaxWidth(Double.MAX_VALUE);
-
         Label author = new Label("by @" + post.getAuthorUsername());
         author.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a4a4a; -fx-cursor: hand;");
         author.setOnMouseClicked(e -> openOtherProfile(post.getAuthorId()));
-
         card.getChildren().add(author);
         return card;
     }
 
-    /** Styled info/placeholder label. */
+    private void showErrorAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title); alert.setHeaderText(null); alert.setContentText(content);
+        alert.showAndWait();
+    }
+
     private Label infoLabel(String text) {
         Label label = new Label(text);
         label.setStyle("-fx-font-size: 14px; -fx-text-fill: #555; -fx-padding: 10;");
@@ -872,15 +748,12 @@ public class DashboardController {
         return label;
     }
 
-    /** Section-header label matching the brown banner style used throughout the app. */
     private Label sectionHeader(String text) {
         Label label = new Label(text);
         label.setMaxWidth(Double.MAX_VALUE);
         label.setAlignment(javafx.geometry.Pos.CENTER);
         label.setPrefHeight(44);
-        label.setStyle(
-                "-fx-background-color: #745a42; -fx-background-radius: 50; " +
-                "-fx-text-fill: white; -fx-font-size: 28px;");
+        label.setStyle("-fx-background-color: #745a42; -fx-background-radius: 50; -fx-text-fill: white; -fx-font-size: 28px;");
         return label;
     }
 }

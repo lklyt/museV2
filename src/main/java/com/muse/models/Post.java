@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Post {
+public class Post implements Searchable {
     private int postId;
     private int authorId;
     private String authorUsername;
@@ -48,4 +48,46 @@ public class Post {
 
     public List<ClothingItem> getClothingItems() { return clothingItems; }
     public void setClothingItems(List<ClothingItem> clothingItems) { this.clothingItems = clothingItems; }
+
+    // Implementing Searchable
+
+    /**
+     * Index 0: authorUsername → best available primary identifier right now,
+     *          since Post has no title or caption field yet.
+     * Index 1: descriptions of the clothing items attached to this post,
+     *           so that a query like "leather jacket" can surface relevant posts.
+     *
+     * If we add a title or caption field to Post (and to the DB
+     * schema), we will promote it to index 0 and push authorUsername to index 1:
+     *   keywords.add(title);          // index 0
+     *   keywords.add(authorUsername); // index 1
+     *   keywords.add(caption);        // index 2
+     */
+    @Override
+    public ArrayList<String> getSearchKeywords() {
+        ArrayList<String> keywords = new ArrayList<>();
+
+        // Index 0 – primary (best we have until a title/caption field exists)
+        if (authorUsername != null) keywords.add(authorUsername);
+
+        // Index 1 – clothing items attached to this post act as content tags
+        if (clothingItems != null) {
+            for (ClothingItem item : clothingItems) {
+                if (item.getDescription() != null) {
+                    keywords.add(item.getDescription());
+                }
+
+                if (item.getCategory() != null) {
+                    keywords.add(item.getCategory().name());
+                }
+            }
+        }
+
+        return keywords;
+    }
+
+    @Override
+    public SearchType getSearchType() {
+        return SearchType.POSTS;
+    }
 }
