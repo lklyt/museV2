@@ -42,4 +42,40 @@ public class PostService {
     public boolean deletePost(int postId) throws Exception {
         return postDAO.delete(postId);
     }
+
+    // --- RATING SYSTEM METHODS ---
+
+    /**
+     * Updates a post object with its current average rating and the specific user's rating.
+     * This allows us to keep the existing 'getAllPosts' signature unchanged.
+     */
+    public void loadRatingData(Post post, int userId) {
+        try {
+            post.setAverageRating(postDAO.getAverageRating(post.getPostId()));
+            post.setUserRating(postDAO.getUserRating(post.getPostId(), userId));
+        } catch (Exception e) {
+            // Silently fail or log - we don't want to crash the feed if 1 rating fails
+            System.err.println("Error loading ratings for post " + post.getPostId() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Saves a new rating and returns the updated average for the UI to display.
+     */
+    public double ratePost(int postId, int userId, int rating) throws Exception {
+        if (rating < 1 || rating > 5) throw new IllegalArgumentException("Rating must be 1-5");
+        
+        postDAO.ratePost(postId, userId, rating);
+        return postDAO.getAverageRating(postId);
+    }
+
+    /**
+     * Just gets the average for a specific post (useful for top-right label updates).
+     */
+    public double getAverageRating(int postId) throws Exception {
+        return postDAO.getAverageRating(postId);
+    }
+    
+
+    
 }
