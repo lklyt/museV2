@@ -1542,11 +1542,11 @@ public class DashboardController {
             if (currentlySaved) {
                 postService.unsavePost(post.getPostId(), userId);
                 post.setSavedByCurrentUser(false);
-                saveButton.setText("☐ Save");
+                saveButton.setText("Save");
             } else {
                 postService.savePost(post.getPostId(), userId);
                 post.setSavedByCurrentUser(true);
-                saveButton.setText("☐ Saved");
+                saveButton.setText("Saved");
             }
         } catch (Exception ex) {
             logger.error("Failed to toggle save status for post " + post.getPostId(), ex);
