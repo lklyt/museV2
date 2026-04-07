@@ -15,6 +15,7 @@ public class Post {
     private List<ClothingItem> clothingItems;
     private double averageRating;
     private int userRating;
+    private boolean isSavedByCurrentUser;
 
     public Post() {
         this.comments = new ArrayList<>();
@@ -59,4 +60,7 @@ public class Post {
 
     public int getUserRating() { return userRating; }
     public void setUserRating(int userRating) { this.userRating = userRating; }
+
+    public boolean isSavedByCurrentUser() { return isSavedByCurrentUser; }
+    public void setSavedByCurrentUser(boolean isSavedByCurrentUser) { this.isSavedByCurrentUser = isSavedByCurrentUser; }
 }
