@@ -234,4 +234,50 @@ public class PostDAOImpl implements PostDAO {
         
         throw new SQLException("Failed to insert or retrieve clothing item");
     }
+
+    @Override
+    public void ratePost(int postId, int userId, int rating) throws Exception {
+        // ON DUPLICATE KEY UPDATE ensures if a user clicks a different star, it updates their old rating
+        String sql = "INSERT INTO post_stars (post_id, user_id, rating) VALUES (?, ?, ?) " +
+                    "ON DUPLICATE KEY UPDATE rating = VALUES(rating)";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            stmt.setInt(2, userId);
+            stmt.setInt(3, rating);
+            stmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public double getAverageRating(int postId) throws Exception {
+        String sql = "SELECT AVG(rating) FROM post_stars WHERE post_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble(1);
+                }
+            }
+        }
+        return 0.0;
+    }
+
+    @Override
+    public int getUserRating(int postId, int userId) throws Exception {
+        String sql = "SELECT rating FROM post_stars WHERE post_id = ? AND user_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            stmt.setInt(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("rating");
+                }
+            }
+        }
+        return 0; // Return 0 if the user hasn't rated this post yet
+    }
 }

@@ -26,6 +26,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -1285,6 +1286,10 @@ public class DashboardController {
      * returns a styled VBox placeholder.
      */
     private Node buildPostCard(Post post) {
+
+        int currentUserId = SessionManager.getInstance().getCurrentUserId(); 
+        postService.loadRatingData(post, currentUserId);
+
         VBox card = new VBox(10);
         card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 12;");
         card.setMaxWidth(Double.MAX_VALUE);
@@ -1302,6 +1307,24 @@ public class DashboardController {
                 "-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; -fx-border-width: 1; -fx-border-radius: 12; -fx-background-radius: 12;");
 
         renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
+        // --- ADD THE AVERAGE RATING (TOP RIGHT) ---
+        Label avgLabel = new Label(String.format("%.1f ★", post.getAverageRating()));
+        avgLabel.setStyle("-fx-background-color: rgba(255,255,255,0.8); -fx-padding: 2 8; " +
+                        "-fx-background-radius: 0 12 0 12; -fx-font-weight: bold; -fx-text-fill: #555;");
+        
+        // Anchor to top-right corner
+        AnchorPane.setTopAnchor(avgLabel, 0.0);
+        AnchorPane.setRightAnchor(avgLabel, 0.0);
+
+        // --- ADD THE INTERACTIVE STARS (BOTTOM RIGHT) ---
+        HBox starBox = createStarRatingBox(post, currentUserId, avgLabel);
+        
+        // Anchor to bottom-right corner
+        AnchorPane.setBottomAnchor(starBox, 10.0);
+        AnchorPane.setRightAnchor(starBox, 10.0);
+
+        // Add rating elements to the preview pane
+        postOutfitPreview.getChildren().addAll(avgLabel, starBox);
         if (postOutfitPreview.getChildren().isEmpty()) {
             Label noItemsLabel = infoLabel("No outfit items attached.");
             noItemsLabel.setStyle("-fx-text-fill: #8a847e; -fx-font-size: 13px;");
@@ -1312,6 +1335,44 @@ public class DashboardController {
 
         card.getChildren().addAll(author, postOutfitPreview);
         return card;
+    }
+
+    private HBox createStarRatingBox(Post post, int userId, Label avgLabel) {
+        HBox box = new HBox(2);
+        box.setStyle("-fx-background-color: rgba(255,255,255,0.6); -fx-background-radius: 10; -fx-padding: 3 6;");
+        
+        for (int i = 1; i <= 5; i++) {
+            Label star = new Label("★");
+            star.setStyle("-fx-font-size: 20px; -fx-cursor: hand;");
+            
+            // Initial color: Gold if rated, Gray if not
+            star.setTextFill(i <= post.getUserRating() ? javafx.scene.paint.Color.web("#FFD700") : javafx.scene.paint.Color.web("#BDC3C7"));
+
+            int ratingValue = i;
+            star.setOnMouseClicked(e -> {
+                try {
+                    // 1. Update database and get new average
+                    double newAvg = postService.ratePost(post.getPostId(), userId, ratingValue);
+                    
+                    // 2. Update local post object
+                    post.setUserRating(ratingValue);
+                    post.setAverageRating(newAvg);
+
+                    // 3. Update UI Label
+                    avgLabel.setText(String.format("%.1f ★", newAvg));
+                    
+                    // 4. Update Star colors in the box
+                    for (int j = 0; j < 5; j++) {
+                        Label s = (Label) box.getChildren().get(j);
+                        s.setTextFill((j + 1) <= ratingValue ? javafx.scene.paint.Color.web("#FFD700") : javafx.scene.paint.Color.web("#BDC3C7"));
+                    }
+                } catch (Exception ex) {
+                    logger.error("Failed to rate post", ex);
+                }
+            });
+            box.getChildren().add(star);
+        }
+        return box;
     }
 
     private Map<ClothingCategory, ClothingItem> toCategoryMap(List<ClothingItem> items) {
