@@ -361,11 +361,13 @@ public class DashboardController {
     private void loadForYouFeed() {
         feedVBox.getChildren().clear();
         try {
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getAllPosts();
             if (posts.isEmpty()) {
                 feedVBox.getChildren().add(infoLabel("No posts yet – be the first to share a style!"));
             } else {
                 for (Post post : posts) {
+                    postService.loadSaveStatus(post, currentUserId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
             }
@@ -380,12 +382,14 @@ public class DashboardController {
         try {
             // Discover shows all posts sorted differently; reuse getAllPosts for now.
             // Replace with postService.getDiscoverPosts() when that method exists.
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getAllPosts();
             if (posts.isEmpty()) {
                 feedVBox.getChildren().add(infoLabel("Nothing to discover yet."));
             } else {
                 java.util.Collections.shuffle(posts); // simple "discover" shuffle
                 for (Post post : posts) {
+                    postService.loadSaveStatus(post, currentUserId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
             }
@@ -857,6 +861,7 @@ public class DashboardController {
                 myPostsVBox.getChildren().add(infoLabel("No posts yet."));
             } else {
                 for (Post p : posts) {
+                    postService.loadSaveStatus(p, userId);
                     myPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
@@ -865,10 +870,25 @@ public class DashboardController {
             myPostsVBox.getChildren().add(infoLabel("Could not load posts."));
         }
 
-        // TODO: load saved outfits into savedOutfitsVBox via an OutfitService
+        // Load saved posts for the current user
         savedOutfitsVBox.getChildren().clear();
         savedOutfitsVBox.getChildren().add(sectionHeader("Saved Outfits"));
-        savedOutfitsVBox.getChildren().add(infoLabel("No saved outfits yet."));
+
+        try {
+            int userId = SessionManager.getInstance().getCurrentUserId();
+            List<Post> savedPosts = postService.getSavedPosts(userId);
+            if (savedPosts.isEmpty()) {
+                savedOutfitsVBox.getChildren().add(infoLabel("No saved outfits yet."));
+            } else {
+                for (Post post : savedPosts) {
+                    postService.loadSaveStatus(post, userId);
+                    savedOutfitsVBox.getChildren().add(buildPostCard(post));
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("Error loading saved posts", ex);
+            savedOutfitsVBox.getChildren().add(infoLabel("Could not load saved posts."));
+        }
     }
 
     @FXML
@@ -1110,11 +1130,13 @@ public class DashboardController {
         communityPostsVBox.getChildren().clear();
 
         try {
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getPostsByCommunity(communityId);
             if (posts.isEmpty()) {
                 communityPostsVBox.getChildren().add(infoLabel("No posts in this community yet."));
             } else {
                 for (Post p : posts) {
+                    postService.loadSaveStatus(p, currentUserId);
                     communityPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
@@ -1161,11 +1183,13 @@ public class DashboardController {
                 otherUsernameLabel.setText("Unknown User");
             }
 
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getPostsByAuthor(userId);
             if (posts.isEmpty()) {
                 otherPostsVBox.getChildren().add(infoLabel("No posts yet."));
             } else {
                 for (Post p : posts) {
+                    postService.loadSaveStatus(p, currentUserId);
                     otherPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
@@ -1342,6 +1366,15 @@ public class DashboardController {
 
         leftSection.getChildren().addAll(author, postOutfitPreview);
 
+        // ── BOOKMARK BUTTON ────────────────────────────────────────────
+        int currentUserId = SessionManager.getInstance().getCurrentUserId();
+        Button saveButton = new Button(post.isSavedByCurrentUser() ? "☐ Saved" : "☐ Save");
+        saveButton.setStyle("-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 16;");
+        saveButton.setMaxWidth(Double.MAX_VALUE);
+        saveButton.setOnAction(e -> toggleSavePost(post, saveButton, currentUserId));
+        leftSection.getChildren().add(saveButton);
+
+
         // ── RIGHT: scrollable comments + interactive input ────────────────────
         VBox rightSection = new VBox(8);
         rightSection.setPrefWidth(220);
@@ -1369,7 +1402,6 @@ public class DashboardController {
         Button commentButton = new Button("Post");
         commentButton.setStyle("-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 12;");
         commentButton.setOnAction(e -> {
-            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             if (currentUserId < 0) {
                 showErrorAlert("Not Logged In", "Please log in before adding a comment.");
                 return;
@@ -1493,6 +1525,33 @@ public class DashboardController {
         label.setStyle("-fx-font-size: 14px; -fx-text-fill: #555; -fx-padding: 10;");
         label.setWrapText(true);
         return label;
+    }
+
+    /**
+     * Toggles the save status of a post and updates the button UI.
+     */
+    private void toggleSavePost(Post post, Button saveButton, int userId) {
+        if (userId < 0) {
+            showErrorAlert("Not Logged In", "Please log in before saving posts.");
+            return;
+        }
+
+        try {
+            boolean currentlySaved = postService.isSaved(post.getPostId(), userId);
+
+            if (currentlySaved) {
+                postService.unsavePost(post.getPostId(), userId);
+                post.setSavedByCurrentUser(false);
+                saveButton.setText("☐ Save");
+            } else {
+                postService.savePost(post.getPostId(), userId);
+                post.setSavedByCurrentUser(true);
+                saveButton.setText("☐ Saved");
+            }
+        } catch (Exception ex) {
+            logger.error("Failed to toggle save status for post " + post.getPostId(), ex);
+            showErrorAlert("Save Failed", "Could not save post: " + ex.getMessage());
+        }
     }
 
     /**

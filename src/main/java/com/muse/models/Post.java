@@ -15,6 +15,7 @@ public class Post {
     private List<ClothingItem> clothingItems;
     private double averageRating;
     private int userRating;
+    private boolean isSavedByCurrentUser;
 
     public Post() {}
 
@@ -54,6 +55,9 @@ public class Post {
     public double getAverageRating() { return averageRating; }
     public void setAverageRating(double averageRating) { this.averageRating = averageRating; }          
 
-    public int getUserRating() { return userRating; }   
+    public int getUserRating() { return userRating; }
     public void setUserRating(int userRating) { this.userRating = userRating; }
+
+    public boolean isSavedByCurrentUser() { return isSavedByCurrentUser; }
+    public void setSavedByCurrentUser(boolean isSavedByCurrentUser) { this.isSavedByCurrentUser = isSavedByCurrentUser; }
 }
