@@ -12,6 +12,7 @@ import com.muse.service.PostService;
 import com.muse.service.UserService;
 import com.muse.service.ClothingItemService;
 import com.muse.util.SessionManager;
+import com.muse.util.ImageCacheManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -34,6 +35,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
+import javafx.application.Platform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -367,9 +369,10 @@ public class DashboardController {
                 feedVBox.getChildren().add(infoLabel("No posts yet – be the first to share a style!"));
             } else {
                 for (Post post : posts) {
-                    postService.loadRatingData(post, userId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
+                // Load ratings asynchronously in background
+                loadPostRatingsAsync(posts, userId);
             }
         } catch (Exception ex) {
             logger.error("Error loading For-You feed", ex);
@@ -389,14 +392,27 @@ public class DashboardController {
             } else {
                 java.util.Collections.shuffle(posts); // simple "discover" shuffle
                 for (Post post : posts) {
-                    postService.loadRatingData(post, userId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
+                // Load ratings asynchronously in background
+                loadPostRatingsAsync(posts, userId);
             }
         } catch (Exception ex) {
             logger.error("Error loading Discover feed", ex);
             feedVBox.getChildren().add(infoLabel("Could not load feed: " + ex.getMessage()));
         }
+    }
+
+    private void loadPostRatingsAsync(List<Post> posts, int userId) {
+        new Thread(() -> {
+            for (Post post : posts) {
+                try {
+                    postService.loadRatingData(post, userId);
+                } catch (Exception e) {
+                    logger.warn("Failed to load rating for post {}", post.getPostId(), e);
+                }
+            }
+        }).start();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -513,7 +529,7 @@ public class DashboardController {
 
         try {
             String categoryName = clicked.getText();
-            ClothingCategory category = ClothingCategory.valueOf(categoryName);
+            ClothingCategory category = ClothingCategory.valueOf(categoryName.toUpperCase());
 
             selectedCreateStyleCategory = category;
             highlightCategorySelection(clicked);
@@ -572,12 +588,36 @@ public class DashboardController {
 
             if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
                 try {
-                    Image img = new Image(item.getImageUrl());
-                    ImageView imgView = new ImageView(img);
-                    imgView.setFitHeight(130);
-                    imgView.setFitWidth(130);
-                    imgView.setPreserveRatio(true);
-                    itemBtn.setGraphic(imgView);
+                    // Check if cached first, otherwise queue async load
+                    Optional<String> cachedUrl = ImageCacheManager.getInstance().getCachedImagePath(item.getImageUrl());
+                    if (cachedUrl.isPresent()) {
+                        Image img = new Image(cachedUrl.get());
+                        ImageView imgView = new ImageView(img);
+                        imgView.setFitHeight(130);
+                        imgView.setFitWidth(130);
+                        imgView.setPreserveRatio(true);
+                        itemBtn.setGraphic(imgView);
+                    } else {
+                        // Queue for async caching
+                        itemBtn.setText(item.getDescription());
+                        ImageCacheManager.getInstance().cacheImageAsync(item.getId(), item.getImageUrl(), category,
+                                cachedUrl2 -> {
+                                    // Once cached, update UI on main thread
+                                    javafx.application.Platform.runLater(() -> {
+                                        try {
+                                            Image img = new Image(cachedUrl2);
+                                            ImageView imgView = new ImageView(img);
+                                            imgView.setFitHeight(130);
+                                            imgView.setFitWidth(130);
+                                            imgView.setPreserveRatio(true);
+                                            itemBtn.setGraphic(imgView);
+                                        } catch (Exception e) {
+                                            logger.warn("Failed to display cached image", e);
+                                        }
+                                    });
+                                },
+                                error -> logger.warn("Failed to cache item image: {}", item.getId()));
+                    }
                 } catch (Exception e) {
                     logger.warn("Could not load image for item: {}", item.getDescription());
                     itemBtn.setText(item.getDescription());
@@ -663,13 +703,17 @@ public class DashboardController {
         double paneWidth = targetPane.getWidth() > 0 ? targetPane.getWidth() : targetPane.getPrefWidth();
         double paneHeight = targetPane.getHeight() > 0 ? targetPane.getHeight() : targetPane.getPrefHeight();
 
+        logger.debug("Rendering outfit preview with {} items, pane size: {}x{}", selectedItems.size(), paneWidth, paneHeight);
+
         boolean hasRenderableItem = false;
         for (ClothingCategory category : PREVIEW_RENDER_ORDER) {
             ClothingItem item = selectedItems.get(category);
             if (item == null || item.getImageUrl() == null || item.getImageUrl().isBlank()) {
+                logger.debug("Skipping category {}: item={}, imageUrl={}", category, item, item != null ? item.getImageUrl() : "null");
                 continue;
             }
 
+            logger.debug("Rendering item for category {}: {}", category, item.getImageUrl());
             ImageView imageView = createPreviewImageView(item, category, paneWidth, paneHeight);
             if (imageView != null) {
                 targetPane.getChildren().add(imageView);
@@ -694,13 +738,25 @@ public class DashboardController {
         }
 
         try {
-            Image image = new Image(item.getImageUrl());
+            // Load from cache if available, otherwise use original URL
+            Optional<String> cachedUrl = ImageCacheManager.getInstance().getCachedImagePath(item.getImageUrl());
+            String imageUrl = cachedUrl.isPresent() ? cachedUrl.get() : item.getImageUrl();
+
+            Image image = new Image(imageUrl, true); // async=true, non-blocking
             ImageView imageView = new ImageView(image);
             imageView.setPreserveRatio(true);
             imageView.setFitWidth(paneWidth * slot.widthRatio());
             imageView.setFitHeight(paneHeight * slot.heightRatio());
             imageView.setLayoutX(paneWidth * slot.xRatio());
             imageView.setLayoutY(paneHeight * slot.yRatio());
+
+            // Queue disk caching in background if not cached
+            if (cachedUrl.isEmpty()) {
+                ImageCacheManager.getInstance().cacheImageAsync(item.getId(), item.getImageUrl(), category,
+                        cached -> logger.debug("Image cached for item {}", item.getId()),
+                        error -> logger.warn("Failed to cache image for item {}", item.getId()));
+            }
+
             return imageView;
         } catch (Exception ex) {
             logger.warn("Could not render outfit preview image for {}", item.getDescription(), ex);
@@ -861,9 +917,10 @@ public class DashboardController {
                 myPostsVBox.getChildren().add(infoLabel("No posts yet."));
             } else {
                 for (Post p : posts) {
-                    postService.loadRatingData(p, userId);
                     myPostsVBox.getChildren().add(buildPostCard(p));
                 }
+                // Load ratings asynchronously in background
+                loadPostRatingsAsync(posts, userId);
             }
         } catch (Exception ex) {
             logger.error("Error loading own posts", ex);
@@ -1121,9 +1178,10 @@ public class DashboardController {
                 communityPostsVBox.getChildren().add(infoLabel("No posts in this community yet."));
             } else {
                 for (Post p : posts) {
-                    postService.loadRatingData(p, userId);
                     communityPostsVBox.getChildren().add(buildPostCard(p));
                 }
+                // Load ratings asynchronously in background
+                loadPostRatingsAsync(posts, userId);
             }
         } catch (Exception ex) {
             logger.error("Error loading community posts", ex);
@@ -1174,9 +1232,10 @@ public class DashboardController {
                 otherPostsVBox.getChildren().add(infoLabel("No posts yet."));
             } else {
                 for (Post p : posts) {
-                    postService.loadRatingData(p, currentUserId);
                     otherPostsVBox.getChildren().add(buildPostCard(p));
                 }
+                // Load ratings asynchronously in background
+                loadPostRatingsAsync(posts, currentUserId);
             }
         } catch (Exception ex) {
             logger.error("Error loading other user profile", ex);
@@ -1322,6 +1381,8 @@ public class DashboardController {
         postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; " +
                                    "-fx-border-width: 1; -fx-border-radius: 15; -fx-background-radius: 15;");
 
+        logger.info("Post {} has {} clothing items", post.getPostId(),
+                   post.getClothingItems() != null ? post.getClothingItems().size() : 0);
         renderOutfitPreview(postOutfitPreview, toCategoryMap(post.getClothingItems()), false);
         // --- ADD THE AVERAGE RATING (TOP RIGHT) ---
         Label avgLabel = new Label(String.format("%.1f ★", post.getAverageRating()));
@@ -1481,7 +1542,8 @@ public class DashboardController {
 
     private Map<ClothingCategory, ClothingItem> toCategoryMap(List<ClothingItem> items) {
         Map<ClothingCategory, ClothingItem> itemsByCategory = new EnumMap<>(ClothingCategory.class);
-        if (items == null) {
+        if (items == null || items.isEmpty()) {
+            logger.warn("No clothing items available for post");
             return itemsByCategory;
         }
 

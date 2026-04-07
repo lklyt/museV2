@@ -16,7 +16,10 @@ public class Post {
     private double averageRating;
     private int userRating;
 
-    public Post() {}
+    public Post() {
+        this.comments = new ArrayList<>();
+        this.clothingItems = new ArrayList<>();
+    }
 
     public Post(int authorId, int communityId) {
         this.authorId = authorId;
@@ -52,8 +55,8 @@ public class Post {
     public void setClothingItems(List<ClothingItem> clothingItems) { this.clothingItems = clothingItems; }
 
     public double getAverageRating() { return averageRating; }
-    public void setAverageRating(double averageRating) { this.averageRating = averageRating; }          
+    public void setAverageRating(double averageRating) { this.averageRating = averageRating; }
 
-    public int getUserRating() { return userRating; }   
+    public int getUserRating() { return userRating; }
     public void setUserRating(int userRating) { this.userRating = userRating; }
 }

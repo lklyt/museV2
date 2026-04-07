@@ -222,7 +222,7 @@ public class PostDAOImpl implements PostDAO {
                     ClothingItem item = new ClothingItem();
                     item.setId(rs.getInt("item_id"));
                     item.setDescription(rs.getString("name"));
-                    item.setCategory(ClothingCategory.valueOf(rs.getString("item_category")));
+                    item.setCategory(ClothingCategory.valueOf(rs.getString("item_category").toUpperCase()));
                     item.setImageUrl(rs.getString("image_url"));
                     items.add(item);
                 }
