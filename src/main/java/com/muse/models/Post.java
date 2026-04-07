@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Post {
+public class Post implements Searchable {
     private int postId;
     private int authorId;
     private String authorUsername;
@@ -63,4 +63,32 @@ public class Post {
 
     public boolean isSavedByCurrentUser() { return isSavedByCurrentUser; }
     public void setSavedByCurrentUser(boolean isSavedByCurrentUser) { this.isSavedByCurrentUser = isSavedByCurrentUser; }
+
+        @Override
+    public ArrayList<String> getSearchKeywords() {
+        ArrayList<String> keywords = new ArrayList<>();
+
+        // Index 0 – primary (best we have until a title/caption field exists)
+        if (authorUsername != null) keywords.add(authorUsername);
+
+        // Index 1 – clothing items attached to this post act as content tags
+        if (clothingItems != null) {
+            for (ClothingItem item : clothingItems) {
+                if (item.getDescription() != null) {
+                    keywords.add(item.getDescription());
+                }
+
+                if (item.getCategory() != null) {
+                    keywords.add(item.getCategory().name());
+                }
+            }
+        }
+
+        return keywords;
+    }
+
+    @Override
+    public SearchType getSearchType() {
+        return SearchType.POSTS;
+    }
 }

@@ -1,7 +1,8 @@
 package com.muse.models;
 
+import java.util.ArrayList;
 
-public class ClothingItem {
+public class ClothingItem implements Searchable {
     private int id;
     private ClothingCategory category;
     private String description;
@@ -26,4 +27,22 @@ public class ClothingItem {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    @Override
+    public ArrayList<String> getSearchKeywords() {
+        ArrayList<String> keywords = new ArrayList<>();
+
+        // Index 0 – primary identifier
+        if (description != null) keywords.add(description);
+
+        // Index 1 – category as a supporting keyword
+        if (category != null) keywords.add(category.name());
+
+        return keywords;
+    }
+
+    @Override
+    public SearchType getSearchType() {
+        return SearchType.CLOTHING_ITEMS;
+    }
 }
