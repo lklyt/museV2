@@ -13,6 +13,8 @@ public class Post {
     private LocalDateTime updatedAt;
     private List<Comment> comments;
     private List<ClothingItem> clothingItems;
+    private double averageRating;
+    private int userRating;
 
     public Post() {}
 
@@ -48,4 +50,10 @@ public class Post {
 
     public List<ClothingItem> getClothingItems() { return clothingItems; }
     public void setClothingItems(List<ClothingItem> clothingItems) { this.clothingItems = clothingItems; }
+
+    public double getAverageRating() { return averageRating; }
+    public void setAverageRating(double averageRating) { this.averageRating = averageRating; }          
+
+    public int getUserRating() { return userRating; }   
+    public void setUserRating(int userRating) { this.userRating = userRating; }
 }

@@ -11,4 +11,7 @@ public interface PostDAO {
     List<Post> findByAuthorId(int authorId) throws Exception;
     List<Post> findAll() throws Exception;
     boolean delete(int postId) throws Exception;
+    void ratePost(int postId, int userId, int rating) throws Exception;
+    double getAverageRating(int postId) throws Exception;
+    int getUserRating(int postId, int userId) throws Exception;
 }
