@@ -362,14 +362,13 @@ public class DashboardController {
         feedVBox.getChildren().clear();
         try {
             int currentUserId = SessionManager.getInstance().getCurrentUserId();
-            int userId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getAllPosts();
             if (posts.isEmpty()) {
                 feedVBox.getChildren().add(infoLabel("No posts yet – be the first to share a style!"));
             } else {
                 for (Post post : posts) {
                     postService.loadSaveStatus(post, currentUserId);
-                    postService.loadRatingData(post, userId);
+                    postService.loadRatingData(post, currentUserId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
             }
@@ -382,10 +381,9 @@ public class DashboardController {
     private void loadDiscoverFeed() {
         feedVBox.getChildren().clear();
         try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             // Discover shows all posts sorted differently; reuse getAllPosts for now.
             // Replace with postService.getDiscoverPosts() when that method exists.
-            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getAllPosts();
             if (posts.isEmpty()) {
                 feedVBox.getChildren().add(infoLabel("Nothing to discover yet."));
@@ -393,7 +391,7 @@ public class DashboardController {
                 java.util.Collections.shuffle(posts); // simple "discover" shuffle
                 for (Post post : posts) {
                     postService.loadSaveStatus(post, currentUserId);
-                    postService.loadRatingData(post, userId);
+                    postService.loadRatingData(post, currentUserId);
                     feedVBox.getChildren().add(buildPostCard(post));
                 }
             }
@@ -858,15 +856,16 @@ public class DashboardController {
         // Re-add the header label (it was declared in FXML as a static child)
         myPostsVBox.getChildren().add(sectionHeader("Posts"));
 
+        int currentUserId = SessionManager.getInstance().getCurrentUserId();
+
         try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
-            List<Post> posts = postService.getPostsByAuthor(userId);
+            List<Post> posts = postService.getPostsByAuthor(currentUserId);
             if (posts.isEmpty()) {
                 myPostsVBox.getChildren().add(infoLabel("No posts yet."));
             } else {
                 for (Post p : posts) {
-                    postService.loadSaveStatus(p, userId);
-                    postService.loadRatingData(p, userId);
+                    postService.loadSaveStatus(p, currentUserId);
+                    postService.loadRatingData(p, currentUserId);
                     myPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
@@ -880,13 +879,12 @@ public class DashboardController {
         savedOutfitsVBox.getChildren().add(sectionHeader("Saved Outfits"));
 
         try {
-            int userId = SessionManager.getInstance().getCurrentUserId();
-            List<Post> savedPosts = postService.getSavedPosts(userId);
+            List<Post> savedPosts = postService.getSavedPosts(currentUserId);
             if (savedPosts.isEmpty()) {
                 savedOutfitsVBox.getChildren().add(infoLabel("No saved outfits yet."));
             } else {
                 for (Post post : savedPosts) {
-                    postService.loadSaveStatus(post, userId);
+                    postService.loadSaveStatus(post, currentUserId);
                     savedOutfitsVBox.getChildren().add(buildPostCard(post));
                 }
             }
@@ -930,12 +928,13 @@ public class DashboardController {
 
     @FXML
     private void handleShowFollowers() {
+        int currentUserId = SessionManager.getInstance().getCurrentUserId();
         // If otherProfileView is visible, we are looking at someone else's list
         if (otherProfileView.isVisible()) {
             showFollowersForUser(currentOtherUserId);
         } else {
             // Otherwise, show our own
-            showFollowersForUser(SessionManager.getInstance().getCurrentUserId());
+            showFollowersForUser(currentUserId);
         }
     }
 
@@ -974,13 +973,14 @@ public class DashboardController {
 
     @FXML
     private void handleShowFollowing() {
+        int currentUserId = SessionManager.getInstance().getCurrentUserId();
         // Check if we are currently looking at someone else's profile
         if (otherProfileView.isVisible()) {
             // Show the list for the 'other' user
             showFollowingForUser(currentOtherUserId);
         } else {
             // Show the list for the logged-in user
-            showFollowingForUser(SessionManager.getInstance().getCurrentUserId());
+            showFollowingForUser(currentUserId);
         }
     }
 
@@ -1136,14 +1136,13 @@ public class DashboardController {
 
         try {
             int currentUserId = SessionManager.getInstance().getCurrentUserId();
-            int userId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getPostsByCommunity(communityId);
             if (posts.isEmpty()) {
                 communityPostsVBox.getChildren().add(infoLabel("No posts in this community yet."));
             } else {
                 for (Post p : posts) {
                     postService.loadSaveStatus(p, currentUserId);
-                    postService.loadRatingData(p, userId);
+                    postService.loadRatingData(p, currentUserId);
                     communityPostsVBox.getChildren().add(buildPostCard(p));
                 }
             }
@@ -1178,12 +1177,12 @@ public class DashboardController {
     public void openOtherProfile(int userId) {
 
         currentOtherUserId = userId;
+        int currentUserId = SessionManager.getInstance().getCurrentUserId();
         updateFollowButton();
         otherPostsVBox.getChildren().clear();
         otherPostsVBox.getChildren().add(sectionHeader("Posts"));
 
         try {
-            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             var userOpt = userService.getUserById(userId);
             if (userOpt.isPresent()) {
                 otherUsernameLabel.setText(userOpt.get().getUsername());
@@ -1191,7 +1190,6 @@ public class DashboardController {
                 otherUsernameLabel.setText("Unknown User");
             }
 
-            int currentUserId = SessionManager.getInstance().getCurrentUserId();
             List<Post> posts = postService.getPostsByAuthor(userId);
             if (posts.isEmpty()) {
                 otherPostsVBox.getChildren().add(infoLabel("No posts yet."));
@@ -1208,9 +1206,8 @@ public class DashboardController {
         }
 
         // Prevent following yourself
-        int me = SessionManager.getInstance().getCurrentUserId();
-        followUserButton.setVisible(userId != me);
-        followUserButton.setManaged(userId != me);
+        followUserButton.setVisible(userId != currentUserId);
+        followUserButton.setManaged(userId != currentUserId);
 
         activateView(otherProfileView);
     }
@@ -1218,17 +1215,17 @@ public class DashboardController {
     @FXML
     private void handleFollowUser() {
         try {
-            int me = SessionManager.getInstance().getCurrentUserId();
+            int currentUserId = SessionManager.getInstance().getCurrentUserId();
 
-            if (userService.isFollowing(me, currentOtherUserId)) {
+            if (userService.isFollowing(currentUserId, currentOtherUserId)) {
                 // UNFOLLOW
-                userService.unfollowUser(me, currentOtherUserId);
+                userService.unfollowUser(currentUserId, currentOtherUserId);
                 followUserButton.setText("Follow");
                 logger.info("Unfollowed user {}", currentOtherUserId);
 
             } else {
                 // FOLLOW
-                userService.followUser(me, currentOtherUserId);
+                userService.followUser(currentUserId, currentOtherUserId);
                 followUserButton.setText("Following ✓");
                 logger.info("Followed user {}", currentOtherUserId);
             }
@@ -1244,10 +1241,10 @@ public class DashboardController {
     }
 
     private void updateFollowButton() {
-        int me = SessionManager.getInstance().getCurrentUserId();
+        int currentUserId = SessionManager.getInstance().getCurrentUserId();
 
         try {
-            if (userService.isFollowing(me, currentOtherUserId)) {
+            if (userService.isFollowing(currentUserId, currentOtherUserId)) {
                 followUserButton.setText("Following ✓");
             } else {
                 followUserButton.setText("Follow");
@@ -1325,6 +1322,9 @@ public class DashboardController {
      * returns a styled VBox placeholder.
      */
     private Node buildPostCard(Post post) {
+        // Get current user ID once at the start
+        int currentUserId = SessionManager.getInstance().getCurrentUserId();
+
         // Outer card uses HBox so the outfit takes centre stage and comments sit alongside it
         HBox card = new HBox(15);
         card.setStyle("-fx-background-color: #C0B7AD; -fx-background-radius: 15; -fx-padding: 15;");
@@ -1351,14 +1351,14 @@ public class DashboardController {
         Label avgLabel = new Label(String.format("%.1f ★", post.getAverageRating()));
         avgLabel.setStyle("-fx-background-color: rgba(255,255,255,0.8); -fx-padding: 2 8; " +
                         "-fx-background-radius: 0 12 0 12; -fx-font-weight: bold; -fx-text-fill: #555;");
-        
+
         // Anchor to top-right corner
         AnchorPane.setTopAnchor(avgLabel, 0.0);
         AnchorPane.setRightAnchor(avgLabel, 0.0);
 
         // --- ADD THE INTERACTIVE STARS (BOTTOM RIGHT) ---
-        HBox starBox = createStarRatingBox(post, SessionManager.getInstance().getCurrentUserId(), avgLabel);
-        
+        HBox starBox = createStarRatingBox(post, currentUserId, avgLabel);
+
         // Anchor to bottom-right corner
         AnchorPane.setBottomAnchor(starBox, 10.0);
         AnchorPane.setRightAnchor(starBox, 10.0);
@@ -1376,8 +1376,7 @@ public class DashboardController {
         leftSection.getChildren().addAll(author, postOutfitPreview);
 
         // ── BOOKMARK BUTTON ────────────────────────────────────────────
-        int currentUserId = SessionManager.getInstance().getCurrentUserId();
-        Button saveButton = new Button(post.isSavedByCurrentUser() ? "☐ Saved" : "☐ Save");
+        Button saveButton = new Button(post.isSavedByCurrentUser() ? "Saved" : "Save");
         saveButton.setStyle("-fx-background-color: #745a42; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 16;");
         saveButton.setMaxWidth(Double.MAX_VALUE);
         saveButton.setOnAction(e -> toggleSavePost(post, saveButton, currentUserId));
