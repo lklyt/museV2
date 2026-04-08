@@ -880,9 +880,8 @@ public class DashboardController {
             ImageView imageView = new ImageView(image);
             imageView.setPreserveRatio(true);
             imageView.setFitWidth(paneWidth * slot.widthRatio());
-            imageView.setFitHeight(paneHeight * slot.heightRatio());
-            imageView.setLayoutX(paneWidth * slot.xRatio());
-            imageView.setLayoutY(paneHeight * slot.yRatio());
+            imageView.setLayoutX(paneWidth * slot.xRatio() - imageView.getFitWidth() / 2);
+            imageView.setLayoutY(paneHeight * slot.yRatio() - imageView.getFitHeight());
 
             // Queue disk caching in background if not cached
             if (cachedUrl.isEmpty()) {
@@ -900,18 +899,18 @@ public class DashboardController {
 
     private PreviewSlot previewSlotFor(ClothingCategory category) {
         return switch (category) {
-            case HATS -> new PreviewSlot(0.38, 0.04, 0.24, 0.14);
-            case TOPS -> new PreviewSlot(0.25, 0.19, 0.54, 0.35);
-            case DRESSES -> new PreviewSlot(0.25, 0.20, 0.55, 0.48);
-            case COATS -> new PreviewSlot(0.69, 0.26, 0.27, 0.42);
-            case BOTTOMS -> new PreviewSlot(0.28, 0.52, 0.50, 0.28);
-            case SHOES -> new PreviewSlot(0.34, 0.80, 0.38, 0.17);
-            case PURSES -> new PreviewSlot(0.08, 0.43, 0.34, 0.21);
+            case HATS -> new PreviewSlot(0.40, 0.02, 0.25);
+            case TOPS -> new PreviewSlot(0.40, 0.15, 0.40);
+            case DRESSES -> new PreviewSlot(0.40, 0.20, 0.40);
+            case COATS -> new PreviewSlot(0.95, 0.19, 0.45);
+            case BOTTOMS -> new PreviewSlot(0.40, 0.42, 0.30);
+            case SHOES -> new PreviewSlot(0.40, 1, 0.25);
+            case PURSES -> new PreviewSlot(0.15, 0.43, 0.25);
             default -> null;
         };
     }
 
-    private record PreviewSlot(double xRatio, double yRatio, double widthRatio, double heightRatio) {
+    private record PreviewSlot(double xRatio, double yRatio, double widthRatio) {
     }
 
     @FXML
@@ -1593,7 +1592,7 @@ public class DashboardController {
 
         AnchorPane postOutfitPreview = new AnchorPane();
         postOutfitPreview.setPrefWidth(450);
-        postOutfitPreview.setPrefHeight(550);
+        postOutfitPreview.setPrefHeight(450);
         postOutfitPreview.setStyle("-fx-background-color: #f8f8f6; -fx-border-color: #b9b2ab; " +
                                    "-fx-border-width: 1; -fx-border-radius: 15; -fx-background-radius: 15;");
 

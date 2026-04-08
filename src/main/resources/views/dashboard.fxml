@@ -176,8 +176,8 @@
                     </ScrollPane>
 
                     <!-- Outfit Preview and Post Button -->
-                    <VBox spacing="10.0" prefWidth="250.0">
-                        <AnchorPane fx:id="outfitPreviewPane" prefHeight="420.0" prefWidth="230.0"
+                    <VBox spacing="10.0" prefWidth="350.0">
+                        <AnchorPane fx:id="outfitPreviewPane" prefHeight="360.0" prefWidth="350.0"
                                     style="-fx-background-color: #f8f8f6; -fx-border-color: #c9c2bc; -fx-border-width: 1; -fx-border-radius: 18; -fx-background-radius: 18;"
                                     VBox.vgrow="ALWAYS" />
                         <Button fx:id="postStyleButton"
