@@ -37,7 +37,6 @@ public class ClothingItemService {
             if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
                 String cachedPath = cacheManager.getOrCacheImage(item.getId(), item.getImageUrl(), category);
                 if (cachedPath != null) {
-                    // cachedPath is already a file:// URL from cache manager
                     item.setImageUrl(cachedPath);
                 }
             }

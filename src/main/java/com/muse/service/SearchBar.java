@@ -11,7 +11,6 @@ public class SearchBar {
     private SearchService searchEngine;
     private SearchType selectedType;
     private ArrayList<String> recentSearches;
-
     private static final int MAX_RECENT_SEARCHES = 10;
 
     public SearchBar(SearchService searchEngine) {
@@ -20,7 +19,7 @@ public class SearchBar {
         this.recentSearches = new ArrayList<String>();
     }
 
-    // Called by the filter buttons (Posts / People / Clothing Items / Communities)
+    // Called by the filter buttons, is partially implemented due to UI choices
     public void setSelectedType(SearchType type) {
         if (type != null) {
             this.selectedType = type;
@@ -33,7 +32,7 @@ public class SearchBar {
         return selectedType;
     }
 
-    // Called by the main full-screen search bar.
+    // Called by the main full screen search bar.
     // Uses whichever filter button is currently selected (default: POSTS).
     public SearchResult globalSearch(String input) {
         addToRecentSearches(input);
@@ -52,6 +51,7 @@ public class SearchBar {
     // dropdown.
     // Returns up to 5 suggestions based on the currently selected type.
     // If the query is blank, returns recent searches instead.
+    // Not implemented in UI due to design choices but works.
     public ArrayList<String> getSuggestions(String input) {
         if (input == null || input.trim().length() == 0) {
             return getRecentSearches();
@@ -76,14 +76,14 @@ public class SearchBar {
         }
     }
 
-    // Adds a confirmed search (i.e. user pressed Enter or tapped a suggestion)
-    // to the front of the recent list. Duplicates are moved to the front rather
-    // than added again. List is capped at MAX_RECENT_SEARCHES.
+    // Adds a confirmed search to the front of the recent list.
+    // Duplicates are moved to the front rather
+    // than added again. List is limited to MAX_RECENT_SEARCHES.
+    // This feature is not used in UI though it can be implemented.
     private void addToRecentSearches(String input) {
         if (input == null || input.trim().length() == 0) {
             return;
         }
-
         String trimmed = input.trim();
 
         for (int i = 0; i < recentSearches.size(); i++) {

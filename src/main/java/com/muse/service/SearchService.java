@@ -17,28 +17,28 @@ import java.util.Collections;
 import java.util.Comparator;
 
 /**
- * Core search engine for MUSE.
+ * Search engine for MUSE.
  *
- * Every Searchable object exposes a keyword list via
+ * Every Searchable object presents a keyword list via
  * getSearchKeywords(). The first keyword (index 0) is treated as
  * the primary identifier (username, post title, etc.) and receives the highest
  * weight. All remaining keywords are treated as supporting tags.
  *
  * Score breakdown per keyword match:
  *   Primary keyword (index 0):
- *     exact match   → +100
- *     starts with   → +75
- *     contains      → +50
- *     word partial  → +8
+ *     exact match  +100
+ *     starts with  +75
+ *     contains     +50
+ *     word partial +8
  *
  *   Supporting keywords (index 1+):
- *     exact match   → +30
- *     starts with   → +15
- *     contains      → +10
- *     word partial  → +3
+ *     exact match  +30
+ *     starts with  +15
+ *     contains     +10
+ *     word partial +3
  *
  * Objects with a total score of 0 are excluded from results.
- * Results are returned sorted highest-score-first.
+ * Results are returned sorted as highest score first.
  *
  */
 public class SearchService {
@@ -47,8 +47,7 @@ public class SearchService {
     private CommunityDAO communityDAO;
     private PostDAO postDAO;
 
-    // ClothingItem is kept as an in-memory list for efficiency.
-
+    // ClothingItem is kept in memory as a list for efficiency.
     private ArrayList<ClothingItem> clothingItems;
 
     public SearchService(UserDAO userDAO, CommunityDAO communityDAO, PostDAO postDAO) {
@@ -58,7 +57,6 @@ public class SearchService {
         this.clothingItems = new ArrayList<ClothingItem>();
     }
 
-    // Temporary setter until ClothingItemDAO exists
     public void setClothingItems(ArrayList<ClothingItem> clothingItems) {
         if (clothingItems != null) {
             this.clothingItems = clothingItems;
@@ -100,7 +98,7 @@ public class SearchService {
                     result.addClothingItem(matched.get(i));
                 }
 
-            } else { // POSTS (default)
+            } else { // POSTS by default
                 ArrayList<Post> allPosts = new ArrayList<Post>(postDAO.findAll());
                 ArrayList<Post> matched = getSortedMatches(allPosts, query);
                 for (int i = 0; i < matched.size(); i++) {
@@ -118,7 +116,7 @@ public class SearchService {
 
     /**
      * Filters and ranks clothing items by category and query.
-     * Used by the half-screen clothing picker on the avatar page.
+     * Used by the half screen clothing picker on the avatar page.
      */
     public ArrayList<ClothingItem> filterClothing(String query, ClothingCategory category) {
         ArrayList<ClothingItem> categoryMatches = new ArrayList<ClothingItem>();
@@ -137,6 +135,7 @@ public class SearchService {
      * Returns up to 5 autocomplete suggestions for the given query and type.
      * Suggestions are the primary keyword (index 0) of matching objects,
      * sorted by relevance score. Duplicates are skipped.
+     * This feature is not implemented in the UI.
      */
     public ArrayList<String> getSuggestions(String query, SearchType selectedType) {
         ArrayList<String> suggestions = new ArrayList<String>();
@@ -189,7 +188,7 @@ public class SearchService {
     /**
      * Returns a new list containing only the items that matched the query,
      * sorted by descending relevance score.
-     * If the query is blank, the original list is returned as-is (no filtering).
+     * If the query is blank, the original list is returned as it is.
      */
     private <T extends Searchable> ArrayList<T> getSortedMatches(ArrayList<T> items, String query) {
         ArrayList<T> result = new ArrayList<T>();
@@ -197,8 +196,7 @@ public class SearchService {
         if (items == null) {
             return result;
         }
-
-        // Blank query → return everything (used by filterClothing when search bar is empty)
+        // Blank query returns everything (used by filterClothing when search bar is empty)
         if (isBlank(query)) {
             result.addAll(items);
             return result;
@@ -227,10 +225,6 @@ public class SearchService {
         return result;
     }
 
-    /**
-     * Adds suggestion entries (primary keyword of each matching item) into the
-     * shared scored list. Skips duplicates (case-insensitive).
-     */
     private void collectSuggestions(
             ArrayList<? extends Searchable> items,
             String query,
@@ -242,7 +236,6 @@ public class SearchService {
 
             if (score > 0) {
                 ArrayList<String> keywords = item.getSearchKeywords();
-                // The primary keyword (index 0) is the suggestion text
                 if (keywords != null && keywords.size() > 0 && keywords.get(0) != null) {
                     String suggestionText = keywords.get(0);
                     if (!containsSuggestion(scored, suggestionText)) {
@@ -262,11 +255,6 @@ public class SearchService {
         return false;
     }
 
-    /**
-     * Index 0 of the keyword list is the primary identifier and carries the
-     * highest weight. All subsequent keywords are treated as supporting tags
-     * with lower weights. A score of 0 means no match at all.
-     */
     private int calculateScore(Searchable item, String query) {
         if (item == null || isBlank(query)) {
             return 0;
@@ -299,7 +287,7 @@ public class SearchService {
                 score += isPrimary ? 50 : 10;
             }
 
-            // Partial word scoring (handles multi-word queries like "dark academia")
+            // Partial word scoring (handles more than one queries like "dark academia")
             for (int p = 0; p < queryParts.length; p++) {
                 String part = queryParts[p];
                 if (part.length() == 0) {
