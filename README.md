@@ -4,59 +4,68 @@
 
 ```
 muse/
-├── pom.xml                          # Maven configuration
-├── .gitignore                       # Git ignore file
-├── SETUP.md                         # This setup guide
+├── pom.xml
+├── dependency-reduced-pom.xml
+├── SETUP.md
+├── .gitignore
 │
-├── src/main/
-│   ├── java/com/muse/
-│   │   ├── MuseApp.java            # Main JavaFX application entry point
-│   │   │
-│   │   ├── models/                 # Data models
-│   │   │   ├── User.java
-│   │   │   ├── Post.java
-│   │   │   ├── Comment.java
-│   │   │   └── Community.java
-│   │   │
-│   │   ├── config/                 # Configuration
-│   │   │   └── DatabaseConfig.java # Database connection pool setup
-│   │   │
-│   │   ├── dao/                    # Data Access Layer
-│   │   │   ├── UserDAO.java          # Interface
-│   │   │   ├── UserDAOImpl.java       # Implementation
-│   │   │   ├── PostDAO.java          # Interface
-│   │   │   ├── PostDAOImpl.java       # Implementation
-│   │   │   ├── CommentDAO.java       # Interface
-│   │   │   ├── CommentDAOImpl.java    # Implementation
-│   │   │   ├── CommunityDAO.java     # Interface
-│   │   │   └── CommunityDAOImpl.java  # Implementation
-│   │   │
-│   │   ├── service/               # Business Logic Layer
-│   │   │   ├── UserService.java     # User operations and authentication
-│   │   │   ├── PostService.java     # Post operations
-│   │   │   ├── CommentService.java  # Comment operations
-│   │   │   └── CommunityService.java # Community operations
-│   │   │
-│   │   ├── ui/
-│   │   │   ├── controllers/       # JavaFX Controllers
-│   │   │   │   ├── LoginController.java
-│   │   │   │   ├── RegisterController.java
-│   │   │   │   └── DashboardController.java
-│   │   │   │
-│   │   │   └── views/             # FXML files (in resources)
-│   │   │
-│   │   └── util/                  # Utilities
-│   │       └── SessionManager.java # User session management
-│   │
-│   └── resources/
-│       ├── views/                 # FXML layout files
-│       │   ├── login.fxml
-│       │   ├── register.fxml
-│       │   └── dashboard.fxml
-│       ├── schema.sql             # Database schema
-│       └── logback.xml            # Logging configuration
-│
-└── src/test/java/                 # Unit tests
+└── src/
+    ├── main/
+    │   ├── java/com/muse/
+    │   │   ├── MuseApp.java
+    │   │   ├── config/
+    │   │   │   ├── DatabaseConfig.java
+    │   │   │   └── ImageCacheConfig.java
+    │   │   ├── dao/ (Data Access Objects)
+    │   │   │   ├── ClothingItemDAO.java
+    │   │   │   ├── ClothingItemDAOImpl.java
+    │   │   │   ├── CommentDAO.java
+    │   │   │   ├── CommentDAOImpl.java
+    │   │   │   ├── CommunityDAO.java
+    │   │   │   ├── CommunityDAOImpl.java
+    │   │   │   ├── PostDAO.java
+    │   │   │   ├── PostDAOImpl.java
+    │   │   │   ├── UserDAO.java
+    │   │   │   └── UserDAOImpl.java
+    │   │   ├── models/ (Data Models)
+    │   │   │   ├── ClothingCategory.java
+    │   │   │   ├── ClothingItem.java
+    │   │   │   ├── Comment.java
+    │   │   │   ├── Community.java
+    │   │   │   ├── ImageMetadata.java
+    │   │   │   ├── Post.java
+    │   │   │   ├── SearchResult.java
+    │   │   │   ├── SearchType.java
+    │   │   │   ├── Searchable.java
+    │   │   │   └── User.java
+    │   │   ├── service/ (Logic)
+    │   │   │   ├── ClothingItemService.java
+    │   │   │   ├── CommentService.java
+    │   │   │   ├── CommunityService.java
+    │   │   │   ├── PostService.java
+    │   │   │   ├── SearchBar.java
+    │   │   │   ├── SearchService.java
+    │   │   │   └── UserService.java
+    │   │   ├── ui/
+    │   │   │   └── controllers/
+    │   │   │       ├── DashboardController.java
+    │   │   │       ├── LoginController.java
+    │   │   │       └── RegisterController.java
+    │   │   └── util/ (Utilities)
+    │   │       ├── CacheIndex.java
+    │   │       ├── ImageCacheManager.java
+    │   │       └── SessionManager.java
+    │   │
+    │   └── resources/
+    │       ├── logback.xml
+    │       ├── schema.sql
+    │       └── views/
+    │           ├── login.fxml
+    │           ├── register.fxml
+    │           └── dashboard.fxml
+    │
+    └── test/
+        └── java/ (Test files)
 ```
 
 ## Prerequisites
@@ -109,10 +118,6 @@ mvn clean package
 # Run the application
 mvn javafx:run
 
-# Or run the JAR directly
-java -jar target/muse-app-1.0.0.jar
-```
-
 ## Architecture Overview
 
 ### Layered Architecture
@@ -139,9 +144,8 @@ java -jar target/muse-app-1.0.0.jar
   - Connection pooling for better performance
 
 - **Model Layer**
-  - Plain Java Objects (POJOs)
+  - Plain Java Objects
   - Represent domain entities
-  - No business logic
 
 ### Key Technologies
 
@@ -172,14 +176,14 @@ java -jar target/muse-app-1.0.0.jar
 - ✅ Create/manage communities
 - ✅ Join/leave communities
 - ✅ Like posts and comments
+- ✅ Search function for 
 
 ### Future Enhancements
 - Direct messaging
 - User profiles with avatars
 - Notifications
-- Post/comment search
+- Comment search
 - User follow system
-- Post reactions (emojis)
 - Media uploads (images/videos)
 - Admin dashboard
 
@@ -216,31 +220,10 @@ Adjust log levels in `logback.xml`
 - Check firewall settings
 
 ### JavaFX Issues
-- Ensure Java 17+ is installed
+- Ensure Java 21+ is installed
 - Check Maven dependencies in pom.xml
 
 ### Build Errors
 - Run `mvn clean` to clear cached builds
 - Verify all dependencies download correctly
 
-## Running Tests
-
-(To be implemented)
-
-```bash
-mvn test
-```
-
-## Git Workflow
-
-```bash
-git init
-git add .
-git commit -m "Initial project structure"
-git remote add origin <your-repo-url>
-git push -u origin main
-```
-
----
-
-For questions or issues, check the code comments or refer to the JavaDoc in source files.
