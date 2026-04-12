@@ -117,6 +117,7 @@ public class CommunityDAOImpl implements CommunityDAO {
         }
     }
 
+    // convert from database to Community
     private Community mapResultSetToCommunity(ResultSet rs) throws SQLException {
         Community community = new Community();
         community.setCommunityId(rs.getInt("community_id"));

@@ -90,6 +90,8 @@ public class ClothingItemDAOImpl implements ClothingItemDAO {
         return items;
     }
 
+    // convert from database to ClothingItem 
+    
     private ClothingItem mapResultSetToClothingItem(ResultSet rs) throws SQLException {
         ClothingItem item = new ClothingItem();
         item.setId(rs.getInt("item_id"));

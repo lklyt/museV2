@@ -126,7 +126,7 @@ public class CommentDAOImpl implements CommentDAO {
         }
     }
 
-
+    //convert from database to Comment
     private Comment mapResultSetToComment(ResultSet rs) throws SQLException {
         Comment comment = new Comment();
         comment.setCommentId(rs.getInt("comment_id"));
