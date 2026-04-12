@@ -68,7 +68,7 @@ public class Post implements Searchable {
     public ArrayList<String> getSearchKeywords() {
         ArrayList<String> keywords = new ArrayList<>();
 
-        // Index 0 – primary (best we have until a title/caption field exists)
+        // Index 0 – primary
         if (authorUsername != null) keywords.add(authorUsername);
 
         // Index 1 – clothing items attached to this post act as content tags
